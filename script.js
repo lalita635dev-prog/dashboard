@@ -6,7 +6,7 @@ const State = {
     activeTab: 'jobs',
     editingId: null,
     searchTerm: '',
-    statusFilter: 'Todos' // Para la mejora 3
+    statusFilter: 'Todos'
 };
 
 const Storage = {
@@ -17,9 +17,10 @@ const Storage = {
     }
 };
 
-/* MEJORA 5: SISTEMA DE TOASTS */
+/* NOTIFICACIONES */
 const Notify = (msg, type = 'success') => {
     const container = document.getElementById('toast-container');
+    if(!container) return;
     const toast = document.createElement('div');
     const colors = {
         success: 'bg-green-600',
@@ -32,8 +33,9 @@ const Notify = (msg, type = 'success') => {
     setTimeout(() => toast.remove(), 2500);
 };
 
-/* MEJORA 4: COPIADO RÁPIDO */
+/* COPIADO RÁPIDO */
 const CopyText = (text) => {
+    if(!text) return;
     navigator.clipboard.writeText(text).then(() => {
         Notify('Copiado al portapapeles');
     });
@@ -62,15 +64,18 @@ const UI = {
     },
     clearInputs() {
         State.editingId = null;
-        document.querySelectorAll('input, textarea').forEach(el => {
+        document.querySelectorAll('input, textarea, select').forEach(el => {
             if (el.id !== 'globalSearch') el.value = '';
         });
     },
     setFilter(status) {
         State.statusFilter = status;
         document.querySelectorAll('.f-btn').forEach(btn => {
-            btn.classList.replace('bg-indigo-600', 'bg-white/5');
-            if (btn.innerText === status) btn.classList.replace('bg-white/5', 'bg-indigo-600');
+            btn.classList.remove('bg-indigo-600');
+            btn.classList.add('bg-white/5');
+            if (btn.innerText === status) {
+                btn.classList.replace('bg-white/5', 'bg-indigo-600');
+            }
         });
         Projects.render();
     },
@@ -112,25 +117,25 @@ const Jobs = {
                         <p class="text-indigo-400 font-bold text-xs uppercase">${j.role || ''} • ${j.contract || ''}</p>
                     </div>
                     <div class="flex gap-3">
-                        <button onclick="Jobs.edit(${j.id})" class="text-indigo-400">✏️</button>
-                        <button onclick="Jobs.remove(${j.id})" class="text-red-400">✖</button>
+                        <button onclick="Jobs.edit(${j.id})" class="text-indigo-400 hover:scale-125 transition">✏️</button>
+                        <button onclick="Jobs.remove(${j.id})" class="text-red-400 hover:scale-125 transition">✖</button>
                     </div>
                 </div>
                 <div class="grid md:grid-cols-2 gap-8">
                     <div>
                         <div class="flex items-center gap-2">
                              ${j.link ? `<a href="${j.link}" target="_blank" class="bg-indigo-500/20 px-4 py-2 rounded-xl text-white text-sm border border-indigo-500/30">🔗 ${j.linkName || 'Acceso'}</a>` : ''}
-                             <button onclick="CopyText('${j.link}')" class="text-xs text-white/40 hover:text-white">📋</button>
+                             ${j.link ? `<button onclick="CopyText('${j.link}')" class="text-xs text-white/40 hover:text-white">📋</button>` : ''}
                         </div>
                         <div class="relative mt-4 p-4 bg-black/20 rounded-xl text-sm italic text-slate-400 border border-white/5 whitespace-pre-line group">
-                            ${j.notes || ''}
-                            <button onclick="CopyText('${j.notes}')" class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition text-[10px] bg-indigo-500 text-white px-2 py-1 rounded">COPIAR NOTA</button>
+                            ${j.notes || 'Sin notas.'}
+                            <button onclick="CopyText('${j.notes}')" class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition text-[10px] bg-indigo-500 text-white px-2 py-1 rounded">COPIAR</button>
                         </div>
                     </div>
                     <div class="bg-white/5 p-4 rounded-xl border border-white/5">
                         <div id="todos-job-${j.id}" class="space-y-1 mb-3"></div>
                         <div class="flex gap-2">
-                            <input id="input-job-${j.id}" class="bg-black/20 p-2 rounded text-xs flex-1 text-white border border-white/10" placeholder="Nueva tarea..." onkeypress="if(event.key==='Enter') Jobs.addTodo(${j.id})">
+                            <input id="input-job-${j.id}" class="bg-black/20 p-2 rounded text-xs flex-1 text-white border border-white/10 focus:outline-none" placeholder="Nueva tarea..." onkeypress="if(event.key==='Enter') Jobs.addTodo(${j.id})">
                             <button onclick="Jobs.addTodo(${j.id})" class="bg-green-600 px-3 rounded text-white font-bold">+</button>
                         </div>
                     </div>
@@ -141,6 +146,7 @@ const Jobs = {
     },
     renderTodos(job) {
         const c = document.getElementById(`todos-job-${job.id}`);
+        if(!c) return;
         c.innerHTML = (job.todos || []).map((t, i) => `
             <div class="flex justify-between items-center group/item text-sm text-white/70">
                 <div class="flex gap-2 items-center">
@@ -153,19 +159,41 @@ const Jobs = {
     save() {
         const name = document.getElementById('jName').value.trim();
         if (!name) return;
-        const data = { id: State.editingId || Date.now(), name, role: document.getElementById('jRole').value, contract: document.getElementById('jContract').value, linkName: document.getElementById('jLinkName').value, link: document.getElementById('jUrl').value, notes: document.getElementById('jNotes').value, todos: State.editingId ? (State.jobs.find(j => j.id === State.editingId)?.todos || []) : [] };
-        if (State.editingId) State.jobs = State.jobs.map(j => j.id === State.editingId ? data : j);
-        else State.jobs.push(data);
+        
+        const data = { 
+            id: State.editingId || Date.now(), 
+            name, 
+            role: document.getElementById('jRole').value, 
+            contract: document.getElementById('jContract').value, 
+            linkName: document.getElementById('jLinkName').value, 
+            link: document.getElementById('jUrl').value, 
+            notes: document.getElementById('jNotes').value, 
+            todos: State.editingId ? (State.jobs.find(j => j.id === State.editingId)?.todos || []) : [] 
+        };
+
+        if (State.editingId) {
+            State.jobs = State.jobs.map(j => j.id === State.editingId ? data : j);
+        } else {
+            State.jobs.push(data);
+        }
+
         Storage.saveAll(); UI.clearInputs(); UI.hideForms(); this.render();
-        Notify('Trabajo guardado');
+        Notify(State.editingId ? 'Cambios guardados' : 'Trabajo guardado');
     },
     edit(id) {
         const j = State.jobs.find(x => x.id === id);
+        if(!j) return;
         State.editingId = id;
         document.getElementById('formJobs').classList.remove('hidden');
-        document.getElementById('jName').value = j.name;
-        document.getElementById('jRole').value = j.role;
-        document.getElementById('jNotes').value = j.notes;
+        
+        // RELLENAR TODOS LOS CAMPOS
+        document.getElementById('jName').value = j.name || '';
+        document.getElementById('jRole').value = j.role || '';
+        document.getElementById('jContract').value = j.contract || '';
+        document.getElementById('jLinkName').value = j.linkName || '';
+        document.getElementById('jUrl').value = j.link || '';
+        document.getElementById('jNotes').value = j.notes || '';
+        
         window.scrollTo({ top: 0, behavior: 'smooth' });
     },
     remove(id) { if (confirm('¿Eliminar trabajo?')) { State.jobs = State.jobs.filter(j => j.id !== id); Storage.saveAll(); this.render(); Notify('Trabajo eliminado', 'error'); } },
@@ -198,9 +226,14 @@ const Projects = {
         const c = document.getElementById('mainContentList');
         c.innerHTML = '';
 
+        // Corregido: Aseguramos que el filtro no rompa la visualización inicial
         let filtered = State.projects.filter(p => p.name.toLowerCase().includes(State.searchTerm));
         if (State.statusFilter !== 'Todos') {
             filtered = filtered.filter(p => p.status === State.statusFilter);
+        }
+
+        if(filtered.length === 0) {
+            c.innerHTML = `<div class="text-center py-20 text-slate-500">No hay proyectos en esta categoría.</div>`;
         }
 
         filtered.forEach(p => {
@@ -216,8 +249,8 @@ const Projects = {
                         </div>
                     </div>
                     <div class="flex gap-2">
-                        <button onclick="Projects.edit(${p.id})">✏️</button>
-                        <button onclick="Projects.remove(${p.id})" class="text-red-400">✖</button>
+                        <button onclick="Projects.edit(${p.id})" class="hover:scale-125 transition">✏️</button>
+                        <button onclick="Projects.remove(${p.id})" class="text-red-400 hover:scale-125 transition">✖</button>
                     </div>
                 </div>
                 
@@ -239,7 +272,7 @@ const Projects = {
                     <div class="bg-indigo-900/10 p-4 rounded-xl border border-indigo-500/10">
                         <div id="todos-proj-${p.id}" class="space-y-1 mb-3"></div>
                         <div class="flex gap-2">
-                            <input id="input-proj-${p.id}" class="bg-black/40 p-2 rounded text-xs flex-1 text-white border border-white/10" placeholder="Nueva tarea..." onkeypress="if(event.key==='Enter') Projects.addTodo(${p.id})">
+                            <input id="input-proj-${p.id}" class="bg-black/40 p-2 rounded text-xs flex-1 text-white border border-white/10 focus:outline-none" placeholder="Nueva tarea..." onkeypress="if(event.key==='Enter') Projects.addTodo(${p.id})">
                             <button onclick="Projects.addTodo(${p.id})" class="bg-indigo-600 px-3 rounded text-white font-bold">+</button>
                         </div>
                     </div>
@@ -253,36 +286,70 @@ const Projects = {
         if (!url) return '';
         return `
         <div class="flex items-center gap-1 bg-white/5 rounded-lg px-2 py-1 border border-white/5">
-            <a href="${url}" target="_blank" class="text-xs text-white/70">${emoji} ${label}</a>
-            <button onclick="CopyText('${url}')" class="text-[10px] hover:text-white">📋</button>
+            <a href="${url}" target="_blank" class="text-xs text-white/70 hover:text-white">${emoji} ${label}</a>
+            <button onclick="CopyText('${url}')" class="text-[10px] text-white/30 hover:text-white">📋</button>
         </div>`;
     },
     renderTodos(proj) {
         const c = document.getElementById(`todos-proj-${proj.id}`);
+        if(!c) return;
         c.innerHTML = (proj.todos || []).map((t, i) => `
             <div class="flex justify-between items-center group/item text-xs text-white/70">
                 <div class="flex gap-2 items-center">
                     <input type="checkbox" ${t.done ? 'checked' : ''} onchange="Projects.toggleTodo(${proj.id}, ${i})">
                     <span class="${t.done ? 'line-through opacity-40' : ''}">${t.text}</span>
                 </div>
-                <button onclick="Projects.removeTodo(${proj.id}, ${i})" class="opacity-0 group-hover/item:opacity-100 text-red-500">✖</button>
+                <button onclick="Projects.removeTodo(${proj.id}, ${i})" class="opacity-0 group-hover/item:opacity-100 text-red-500 transition">✖</button>
             </div>`).join('');
     },
     save() {
         const name = document.getElementById('pName').value.trim();
         if (!name) return;
-        const data = { id: State.editingId || Date.now(), name, status: document.getElementById('pStatus').value, version: document.getElementById('pVersion').value, date: document.getElementById('pDate').value, client: document.getElementById('pClient').value, link: document.getElementById('pLink').value, qa: document.getElementById('pQaLink').value, docs: document.getElementById('pDocs').value, videos: document.getElementById('pVideos').value, secure: document.getElementById('pSecure').value, notes: document.getElementById('pNotes').value, todos: State.editingId ? (State.projects.find(p => p.id === State.editingId)?.todos || []) : [] };
-        if (State.editingId) State.projects = State.projects.map(p => p.id === State.editingId ? data : p);
-        else State.projects.push(data);
+        
+        const data = { 
+            id: State.editingId || Date.now(), 
+            name, 
+            status: document.getElementById('pStatus').value, 
+            version: document.getElementById('pVersion').value, 
+            date: document.getElementById('pDate').value, 
+            client: document.getElementById('pClient').value, 
+            link: document.getElementById('pLink').value, 
+            qa: document.getElementById('pQaLink').value, 
+            docs: document.getElementById('pDocs').value, 
+            videos: document.getElementById('pVideos').value, 
+            secure: document.getElementById('pSecure').value, 
+            notes: document.getElementById('pNotes').value, 
+            todos: State.editingId ? (State.projects.find(p => p.id === State.editingId)?.todos || []) : [] 
+        };
+
+        if (State.editingId) {
+            State.projects = State.projects.map(p => p.id === State.editingId ? data : p);
+        } else {
+            State.projects.push(data);
+        }
+
         Storage.saveAll(); UI.clearInputs(); UI.hideForms(); this.render();
         Notify('Proyecto guardado');
     },
     edit(id) {
         const p = State.projects.find(x => x.id === id);
+        if(!p) return;
         State.editingId = id;
         document.getElementById('formProjects').classList.remove('hidden');
-        document.getElementById('pName').value = p.name;
-        document.getElementById('pStatus').value = p.status;
+        
+        // RELLENAR TODOS LOS CAMPOS
+        document.getElementById('pName').value = p.name || '';
+        document.getElementById('pStatus').value = p.status || 'En diseño';
+        document.getElementById('pVersion').value = p.version || '';
+        document.getElementById('pDate').value = p.date || '';
+        document.getElementById('pClient').value = p.client || '';
+        document.getElementById('pLink').value = p.link || '';
+        document.getElementById('pQaLink').value = p.qa || '';
+        document.getElementById('pDocs').value = p.docs || '';
+        document.getElementById('pVideos').value = p.videos || '';
+        document.getElementById('pSecure').value = p.secure || '';
+        document.getElementById('pNotes').value = p.notes || '';
+        
         window.scrollTo({ top: 0, behavior: 'smooth' });
     },
     remove(id) { if (confirm('¿Eliminar proyecto?')) { State.projects = State.projects.filter(p => p.id !== id); Storage.saveAll(); this.render(); Notify('Proyecto eliminado', 'error'); } },
@@ -315,6 +382,11 @@ const Tools = {
         const container = document.getElementById('mainContentList');
         container.innerHTML = '';
         const filtered = State.tools.filter(t => t.name.toLowerCase().includes(State.searchTerm) || t.category.toLowerCase().includes(State.searchTerm));
+        
+        if(filtered.length === 0) {
+            container.innerHTML = `<div class="text-center py-20 text-slate-500">No se encontraron herramientas.</div>`;
+        }
+
         const groups = filtered.reduce((acc, t) => {
             const cat = t.category || 'General';
             acc[cat] = acc[cat] || [];
@@ -334,7 +406,7 @@ const Tools = {
                                 <button onclick="Tools.remove(${t.id})" class="text-[10px] bg-black p-1 rounded">✖</button>
                             </div>
                             <a href="${t.url}" target="_blank">
-                                <div class="text-3xl mb-2">${t.icon || '🔗'}</div>
+                                <div class="text-3xl mb-2">${t.icon || '🚀'}</div>
                                 <div class="text-xs font-bold truncate text-white">${t.name}</div>
                             </a>
                             <button onclick="CopyText('${t.url}')" class="text-[10px] text-white/20 hover:text-white mt-1">Copiar URL</button>
@@ -355,11 +427,13 @@ const Tools = {
     },
     edit(id) {
         const t = State.tools.find(x => x.id === id);
+        if(!t) return;
         State.editingId = id;
         document.getElementById('formTools').classList.remove('hidden');
-        document.getElementById('tName').value = t.name;
-        document.getElementById('tUrl').value = t.url;
-        document.getElementById('tCategory').value = t.category;
+        document.getElementById('tName').value = t.name || '';
+        document.getElementById('tUrl').value = t.url || '';
+        document.getElementById('tCategory').value = t.category || '';
+        document.getElementById('tIcon').value = t.icon || '';
     },
     remove(id) { if (confirm('¿Eliminar?')) { State.tools = State.tools.filter(t => t.id !== id); Storage.saveAll(); this.render(); Notify('Herramienta eliminada', 'error'); } }
 };
@@ -369,19 +443,23 @@ const Backup = {
         const blob = new Blob([JSON.stringify(State, null, 2)], { type: 'application/json' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = `backup.json`;
+        a.download = `backup_${new Date().toLocaleDateString()}.json`;
         a.click();
         Notify('Backup exportado');
     },
     importJSON(file) {
         const r = new FileReader();
         r.onload = e => {
-            const json = JSON.parse(e.target.result);
-            State.jobs = json.jobs || [];
-            State.projects = json.projects || [];
-            State.tools = json.tools || [];
-            Storage.saveAll();
-            location.reload();
+            try {
+                const json = JSON.parse(e.target.result);
+                State.jobs = json.jobs || [];
+                State.projects = json.projects || [];
+                State.tools = json.tools || [];
+                Storage.saveAll();
+                location.reload();
+            } catch(err) {
+                Notify('Archivo inválido', 'error');
+            }
         };
         r.readAsText(file);
     }
