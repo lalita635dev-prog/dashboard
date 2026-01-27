@@ -226,7 +226,6 @@ const Projects = {
         const c = document.getElementById('mainContentList');
         c.innerHTML = '';
 
-        // Corregido: Aseguramos que el filtro no rompa la visualización inicial
         let filtered = State.projects.filter(p => p.name.toLowerCase().includes(State.searchTerm));
         if (State.statusFilter !== 'Todos') {
             filtered = filtered.filter(p => p.status === State.statusFilter);
@@ -258,10 +257,10 @@ const Projects = {
                     <div>
                         <div class="flex flex-wrap gap-2 mb-4">
                             ${this.getLinkBtn(p.link, '🌐', 'Proyecto')}
-                            ${this.getLinkBtn(p.url, '🔗', 'URL')}
+                            ${this.getLinkBtn(p.qa, '🔗', 'URL')}
                             ${this.getLinkBtn(p.docs, '📄', 'Docs')}
                             ${this.getLinkBtn(p.videos, '🎬', 'Videos')}
-                            ${this.getLinkBtn(p.secure, '🔐', 'Cifrados')}
+                            ${this.getLinkBtn(p.secure, '🔐', 'Archivos Cifrados')}
                         </div>
                         <div class="relative group bg-black/30 p-4 rounded-xl text-sm text-slate-400 italic border border-white/5">
                             ${p.notes || 'Sin notas.'}
@@ -314,7 +313,7 @@ const Projects = {
             date: document.getElementById('pDate').value, 
             client: document.getElementById('pClient').value, 
             link: document.getElementById('pLink').value, 
-            url: document.getElementById('purlLink').value, 
+            qa: document.getElementById('pQaLink').value, 
             docs: document.getElementById('pDocs').value, 
             videos: document.getElementById('pVideos').value, 
             secure: document.getElementById('pSecure').value, 
@@ -344,7 +343,7 @@ const Projects = {
         document.getElementById('pDate').value = p.date || '';
         document.getElementById('pClient').value = p.client || '';
         document.getElementById('pLink').value = p.link || '';
-        document.getElementById('putlLink').value = p.url || '';
+        document.getElementById('pQaLink').value = p.qa || '';
         document.getElementById('pDocs').value = p.docs || '';
         document.getElementById('pVideos').value = p.videos || '';
         document.getElementById('pSecure').value = p.secure || '';
@@ -466,4 +465,3 @@ const Backup = {
 };
 
 UI.init();
-

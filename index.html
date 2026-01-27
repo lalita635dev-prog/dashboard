@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8" />
-    <title>Dashboard Pro - Lali</title>
+    <title>Dashboard Web - Lali</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="icon" href="https://fav.farm/💼">
@@ -21,7 +21,6 @@
             border-radius: 10px;
         }
 
-        /* Animación para los Toasts */
         @keyframes slideIn {
             from {
                 transform: translateY(100%);
@@ -54,7 +53,7 @@
                 class="tab bg-white/10 px-5 py-2 rounded-xl text-white hover:bg-white/20 transition-all">📁
                 Proyectos</button>
             <button id="tab-tools" onclick="UI.showTools()"
-                class="tab bg-white/10 px-5 py-2 rounded-xl text-white hover:bg-white/20 transition-all">🧰
+                class="tab bg-white/10 px-5 py-2 rounded-xl text-white hover:bg-white/20 transition-all">🛠️
                 Herramientas</button>
         </div>
 
@@ -93,7 +92,7 @@
             <div>
                 <h1 class="text-4xl font-black text-white tracking-tighter">Mi Dashboard</h1>
                 <p class="text-indigo-400 text-sm font-medium uppercase tracking-widest" id="subTitle">Gestión de
-                    Perfiles</p>
+                    Perfiles y Proyectos</p>
             </div>
             <button id="btnNew" onclick="UI.showFormByTab()"
                 class="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-2xl font-black shadow-lg shadow-indigo-500/20 transition-all active:scale-95">
@@ -103,7 +102,7 @@
 
         <div id="formProjects"
             class="hidden mb-10 bg-slate-900/50 p-6 rounded-3xl border border-white/10 backdrop-blur-xl">
-            <h3 class="text-xl font-bold mb-4 text-white">Proyecto Freelance</h3>
+            <h3 class="text-xl font-bold mb-4 text-white">Proyecto</h3>
             <div class="grid md:grid-cols-2 gap-4">
                 <input id="pName" placeholder="Nombre *"
                     class="p-3 rounded-xl bg-black/30 border border-white/10 text-white" />
@@ -122,13 +121,13 @@
                     class="p-3 rounded-xl bg-black/30 border border-white/10 text-white" />
                 <input id="pLink" placeholder="Link proyecto"
                     class="p-3 rounded-xl bg-black/30 border border-white/10 text-white" />
-                <input id="purlLink" placeholder="URL"
+                <input id="pQaLink" placeholder="URL"
                     class="p-3 rounded-xl bg-black/30 border border-white/10 text-white" />
-                <input id="pDocs" placeholder="TeraBox Docs"
+                <input id="pDocs" placeholder="Docs"
                     class="p-3 rounded-xl bg-black/30 border border-white/10 text-white" />
-                <input id="pVideos" placeholder="TeraBox Videos"
+                <input id="pVideos" placeholder="Carpeta de Videos"
                     class="p-3 rounded-xl bg-black/30 border border-white/10 text-white" />
-                <input id="pSecure" placeholder="TeraBox Cifrados"
+                <input id="pSecure" placeholder="Archivos Cifrados"
                     class="p-3 rounded-xl bg-black/30 border border-white/10 text-white" />
                 <textarea id="pNotes" placeholder="Notas"
                     class="p-3 rounded-xl md:col-span-2 bg-black/30 border border-white/10 text-white h-24"></textarea>
@@ -168,7 +167,7 @@
 
         <div id="formTools"
             class="hidden mb-10 bg-slate-900/50 p-6 rounded-3xl border border-blue-500/30 backdrop-blur-xl">
-            <h3 class="text-xl font-bold mb-4 text-white">Herramienta / Recurso</h3>
+            <h3 class="text-xl font-bold mb-4 text-white">Herramienta</h3>
             <div class="grid md:grid-cols-2 gap-4">
                 <input id="tName" placeholder="Nombre *"
                     class="p-3 rounded-xl bg-black/30 border border-white/10 text-white" />
@@ -204,7 +203,4 @@
     </footer>
 </body>
 
-
 </html>
-
-
