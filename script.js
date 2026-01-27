@@ -258,7 +258,7 @@ const Projects = {
                     <div>
                         <div class="flex flex-wrap gap-2 mb-4">
                             ${this.getLinkBtn(p.link, '🌐', 'Proyecto')}
-                            ${this.getLinkBtn(p.qa, '🧪', 'QA')}
+                            ${this.getLinkBtn(p.url, '🔗', 'URL')}
                             ${this.getLinkBtn(p.docs, '📄', 'Docs')}
                             ${this.getLinkBtn(p.videos, '🎬', 'Videos')}
                             ${this.getLinkBtn(p.secure, '🔐', 'Cifrados')}
@@ -314,7 +314,7 @@ const Projects = {
             date: document.getElementById('pDate').value, 
             client: document.getElementById('pClient').value, 
             link: document.getElementById('pLink').value, 
-            qa: document.getElementById('pQaLink').value, 
+            url: document.getElementById('purlLink').value, 
             docs: document.getElementById('pDocs').value, 
             videos: document.getElementById('pVideos').value, 
             secure: document.getElementById('pSecure').value, 
@@ -344,7 +344,7 @@ const Projects = {
         document.getElementById('pDate').value = p.date || '';
         document.getElementById('pClient').value = p.client || '';
         document.getElementById('pLink').value = p.link || '';
-        document.getElementById('pQaLink').value = p.qa || '';
+        document.getElementById('putlLink').value = p.url || '';
         document.getElementById('pDocs').value = p.docs || '';
         document.getElementById('pVideos').value = p.videos || '';
         document.getElementById('pSecure').value = p.secure || '';
@@ -466,3 +466,4 @@ const Backup = {
 };
 
 UI.init();
+
