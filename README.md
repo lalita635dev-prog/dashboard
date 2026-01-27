@@ -1,4 +1,4 @@
-# Dashboard Pro - Lali 💼
+# Dashboard Web - Lali 💼
 
 Una Progressive Web App (PWA) moderna y ligera para la gestión de perfiles laborales, proyectos freelance y recursos digitales. Diseñada para funcionar directamente en el navegador con almacenamiento local persistente.
 
