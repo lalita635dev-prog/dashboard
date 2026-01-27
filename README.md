@@ -11,7 +11,7 @@ Una Progressive Web App (PWA) moderna y ligera para la gestión de perfiles labo
 - **Diseño Premium:** Interfaz oscura con Tailwind CSS.
 
 ## 🌐 Demo En Vivo
-Puedes ver la aplicación aquí: **[lalita635dev-prog.github.io/dashboard/]**
+Puedes ver la aplicación aquí: **[Dashboard](lalita635dev-prog.github.io/dashboard/)**
 
 ## 🛠️ Instalación y Uso
 1. Descarga el repositorio.
