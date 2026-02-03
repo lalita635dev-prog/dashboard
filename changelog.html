@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -8,40 +8,47 @@
 </head>
 <body>
 
-  <header class="container">
-    <h1>Changelog</h1>
-    <p class="subtitle">Dashboard Project – version history</p>
+  <header class="hero" style="padding: 3rem 1.5rem;">
+    <div class="hero-content">
+      <h1>Registro de Cambios</h1>
+      <p class="subtitle">Evolución y mejoras del proyecto</p>
+      <a href="index.html" style="color: white; text-decoration: none; font-size: 0.9rem;">← Volver al inicio</a>
+    </div>
   </header>
 
   <main class="container">
+    <div class="timeline">
 
-    <section class="version">
-      <h2>v2.0 <span>– 2026</span></h2>
-      <ul>
-        <li>Visual redesign of the dashboard</li>
-        <li>Improved usability and layout</li>
-        <li>Separated CSS styles</li>
-        <li>General performance improvements</li>
-      </ul>
-    </section>
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-content">
+          <h2>v2.0 <span>Enero 2026</span></h2>
+          <ul class="muted">
+            <li>Rediseño visual completo de la interfaz del dashboard.</li>
+            <li>Mejora en la arquitectura de archivos (CSS separado).</li>
+            <li>Optimización de rendimiento y tiempos de carga.</li>
+            <li>Nuevos componentes interactivos de visualización.</li>
+          </ul>
+        </div>
+      </div>
 
-    <section class="version">
-      <h2>v1.0 <span>– 2025</span></h2>
-      <ul>
-        <li>Initial dashboard version</li>
-        <li>Core functionality implemented</li>
-      </ul>
-    </section>
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-content">
+          <h2>v1.0 <span>Año 2025</span></h2>
+          <ul class="muted">
+            <li>Lanzamiento inicial del proyecto.</li>
+            <li>Implementación de funcionalidades core de visualización.</li>
+            <li>Conexión básica de datos y estructura HTML estática.</li>
+          </ul>
+        </div>
+      </div>
 
-    <a class="back" href="index.html">← Back to home</a>
-
+    </div>
   </main>
 
   <footer>
-    <p>
-      Developed by Maria Laura Peralta<br />
-      Dashboard Project
-    </p>
+    <p>Desarrollado por Maria Laura Peralta<br>Dashboard Project</p>
   </footer>
 
 </body>
