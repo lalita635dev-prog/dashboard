@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Dashboard Web - Lali</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="icon" href="https://fav.farm/💼">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+
+<body class="min-h-screen text-slate-200 custom-scrollbar">
+
+    <div id="toast-container" class="fixed bottom-5 right-5 z-[100] flex flex-col gap-2"></div>
+
+    <header
+        class="bg-black/20 backdrop-blur-md p-4 flex flex-wrap justify-between items-center gap-4 sticky top-0 z-50 border-b border-white/5">
+        <div class="flex gap-2">
+            <button id="tab-jobs" onclick="UI.showJobs()"
+                class="tab bg-indigo-600 px-5 py-2 rounded-xl text-white font-bold transition-all">💼 Trabajos</button>
+            <button id="tab-projects" onclick="UI.showProjects()"
+                class="tab bg-white/10 px-5 py-2 rounded-xl text-white hover:bg-white/20 transition-all">📁
+                Proyectos</button>
+            <button id="tab-tools" onclick="UI.showTools()"
+                class="tab bg-white/10 px-5 py-2 rounded-xl text-white hover:bg-white/20 transition-all">🛠️
+                Herramientas</button>
+        </div>
+
+        <div class="flex-1 max-w-md mx-4">
+            <input type="text" id="globalSearch" placeholder="Buscar..."
+                class="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-indigo-500 transition-all">
+        </div>
+
+        <select onchange="setTheme(this.value)" class="bg-black/30 text-xs px-3 py-2 rounded-lg border border-white/10">
+            <option value="">🌑 Default</option>
+            <option value="theme-emerald">🟢 Emerald</option>
+            <option value="theme-rose">🌸 Rose</option>
+            <option value="theme-sky">☁️ Sky</option>
+            <option value="theme-amber">🔥 Amber</option>
+        </select>
+
+        <div class="flex gap-2">
+            <button onclick="Backup.exportJSON()"
+                class="bg-green-600/80 hover:bg-green-600 px-3 py-2 rounded-lg text-sm text-white transition">📥
+                Exportar</button>
+            <button onclick="document.getElementById('backupInput').click()"
+                class="bg-amber-600/80 hover:bg-amber-600 px-3 py-2 rounded-lg text-sm text-white transition">📤
+                Importar</button>
+            <input type="file" id="backupInput" accept=".json" class="hidden"
+                onchange="Backup.importJSON(this.files[0])">
+        </div>
+
+    </header>
+
+    <main class="max-w-6xl mx-auto p-6">
+        <div id="filterBar" class="hidden mb-6 flex flex-wrap gap-2 items-center">
+            <span class="text-xs font-bold text-slate-500 uppercase mr-2">Filtrar por:</span>
+            <button onclick="UI.setFilter('Todos')"
+                class="f-btn bg-indigo-600 text-[10px] px-3 py-1 rounded-full text-white font-bold">Todos</button>
+            <button onclick="UI.setFilter('En desarrollo')"
+                class="f-btn bg-white/5 text-[10px] px-3 py-1 rounded-full text-white hover:bg-white/10">En
+                desarrollo</button>
+            <button onclick="UI.setFilter('Testing')"
+                class="f-btn bg-white/5 text-[10px] px-3 py-1 rounded-full text-white hover:bg-white/10">Testing</button>
+            <button onclick="UI.setFilter('Producción')"
+                class="f-btn bg-white/5 text-[10px] px-3 py-1 rounded-full text-white hover:bg-white/10">Producción</button>
+        </div>
+
+        <div class="flex justify-between items-end mb-8">
+            <div>
+                <h1 class="text-4xl font-black text-white tracking-tighter">
+
+                    Dashboard <p class="text-xs text-slate-500 mt-2"><span id="appVersion"></span>
+                    </p>
+                </h1>
+                <p class="text-indigo-400 text-sm font-medium uppercase tracking-widest" id="subTitle">Gestión de
+                    Trabajo y Proyectos Freelance</p>
+            </div>
+            <button id="btnNew" onclick="UI.showFormByTab()"
+                class="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-2xl font-black shadow-lg shadow-indigo-500/20 transition-all active:scale-95">
+                ＋ NUEVO
+            </button>
+        </div>
+
+        <div id="formProjects"
+            class="hidden mb-10 bg-slate-900/50 p-6 rounded-3xl border border-white/10 backdrop-blur-xl">
+            <h3 class="text-xl font-bold mb-4 text-white">Proyecto</h3>
+            <div class="grid md:grid-cols-2 gap-4">
+                <input id="pName" placeholder="Nombre *"
+                    class="p-3 rounded-xl bg-black/30 border border-white/10 text-white" />
+                <select id="pStatus" class="p-3 rounded-xl bg-black/30 border border-white/10 text-white">
+                    <option>En diseño</option>
+                    <option>En desarrollo</option>
+                    <option>Testing</option>
+                    <option>Producción</option>
+                    <option>Mantenimiento</option>
+                    <option>Offline</option>
+                </select>
+                <input id="pVersion" placeholder="Versión"
+                    class="p-3 rounded-xl bg-black/30 border border-white/10 text-white" />
+                <input id="pDate" type="date" class="p-3 rounded-xl bg-black/30 border border-white/10 text-white" />
+                <input id="pClient" placeholder="Cliente"
+                    class="p-3 rounded-xl bg-black/30 border border-white/10 text-white" />
+                <input id="pLink" placeholder="Link proyecto"
+                    class="p-3 rounded-xl bg-black/30 border border-white/10 text-white" />
+                <input id="pQaLink" placeholder="URL"
+                    class="p-3 rounded-xl bg-black/30 border border-white/10 text-white" />
+                <input id="pDocs" placeholder="Docs"
+                    class="p-3 rounded-xl bg-black/30 border border-white/10 text-white" />
+                <input id="pVideos" placeholder="Carpeta de Videos"
+                    class="p-3 rounded-xl bg-black/30 border border-white/10 text-white" />
+                <input id="pSecure" placeholder="Archivos Cifrados"
+                    class="p-3 rounded-xl bg-black/30 border border-white/10 text-white" />
+                <textarea id="pNotes" placeholder="Notas"
+                    class="p-3 rounded-xl md:col-span-2 bg-black/30 border border-white/10 text-white h-24"></textarea>
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button onclick="Projects.save()"
+                    class="bg-indigo-600 px-6 py-2 rounded-xl text-white font-bold">Guardar</button>
+                <button onclick="UI.hideForms()" class="bg-white/5 px-6 py-2 rounded-xl text-white">Cancelar</button>
+            </div>
+        </div>
+
+        <div id="formJobs"
+            class="hidden mb-10 bg-indigo-950/40 p-6 rounded-3xl border border-indigo-500/30 backdrop-blur-xl">
+            <h3 class="text-xl font-bold mb-4 text-white">Perfil de Trabajo</h3>
+            <div class="grid md:grid-cols-2 gap-4">
+                <input id="jName" placeholder="Empresa *"
+                    class="p-3 rounded-xl bg-black/30 border border-white/10 text-white" />
+                <input id="jRole" placeholder="Puesto"
+                    class="p-3 rounded-xl bg-black/30 border border-white/10 text-white" />
+                <input id="jContract" placeholder="Tipo Contratación"
+                    class="p-3 rounded-xl bg-black/30 border border-white/10 text-white" />
+                <div class="grid grid-cols-2 gap-2">
+                    <input id="jLinkName" placeholder="Etiqueta Link"
+                        class="p-3 rounded-xl bg-indigo-900/30 border border-white/10 text-white" />
+                    <input id="jUrl" placeholder="URL (https://...)"
+                        class="p-3 rounded-xl bg-indigo-900/30 border border-white/10 text-white" />
+                </div>
+                <textarea id="jNotes" placeholder="Notas y accesos..."
+                    class="p-3 rounded-xl md:col-span-2 bg-black/30 border border-white/10 text-white h-24"></textarea>
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button onclick="Jobs.save()"
+                    class="bg-indigo-600 px-6 py-2 rounded-xl text-white font-bold">Guardar</button>
+                <button onclick="UI.hideForms()" class="bg-white/5 px-6 py-2 rounded-xl text-white">Cancelar</button>
+            </div>
+        </div>
+
+        <div id="formTools"
+            class="hidden mb-10 bg-slate-900/50 p-6 rounded-3xl border border-blue-500/30 backdrop-blur-xl">
+            <h3 class="text-xl font-bold mb-4 text-white">Herramienta</h3>
+            <div class="grid md:grid-cols-2 gap-4">
+                <input id="tName" placeholder="Nombre *"
+                    class="p-3 rounded-xl bg-black/30 border border-white/10 text-white" />
+                <input id="tUrl" placeholder="URL"
+                    class="p-3 rounded-xl bg-black/30 border border-white/10 text-white" />
+                <input id="tCategory" list="categorySuggestions" placeholder="Categoría"
+                    class="p-3 rounded-xl bg-black/30 border border-white/10 text-white" />
+                <datalist id="categorySuggestions"></datalist>
+                <input id="tIcon" placeholder="Icono (Emoji)"
+                    class="p-3 rounded-xl bg-black/30 border border-white/10 text-white" />
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button onclick="Tools.save()"
+                    class="bg-blue-600 px-6 py-2 rounded-xl text-white font-bold">Guardar</button>
+                <button onclick="UI.hideForms()" class="bg-white/5 px-6 py-2 rounded-xl text-white">Cancelar</button>
+            </div>
+        </div>
+
+        <div id="mainContentList" class="space-y-8"></div>
+    </main>
+
+    <script src="script.js"></script>
+    <footer class="mt-20 mb-10 text-center border-t border-white/5 pt-8 pb-4">
+        <p class="text-slate-400 text-sm font-medium">
+            © 2026 Desarrollado por
+            <a href="https://lalita635.github.io/Maria_Laura_Peralta/" target="_blank"
+                class="text-indigo-400 hover:text-indigo-300 font-bold transition-all decoration-indigo-500/30 underline-offset-4 underline">
+                Lalita635
+            </a>
+            - Todos los derechos reservados.
+        </p>
+    </footer>
+</body>
+
+</html>
