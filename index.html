@@ -8,33 +8,71 @@
 </head>
 <body>
 
-  <header class="container">
-    <h1>Dashboard Project</h1>
-    <p class="subtitle">Development & version tracking of the dashboard application</p>
-    <span class="badge">Current version: v2.0</span>
+  <header class="hero">
+    <div class="hero-content">
+      <h1>Dashboard Project</h1>
+      <p class="subtitle">
+        A centralized platform to explore, test and track the evolution of the dashboard.
+      </p>
+      <span class="badge">Current version: v2.0</span>
+
+      <div class="hero-actions">
+        <a href="dashboard/v2/index.html" class="btn primary">▶ Launch Dashboard</a>
+        <a href="changelog.html" class="btn secondary">View changelog</a>
+      </div>
+    </div>
   </header>
 
   <main class="container">
 
-    <section>
+    <section class="card">
       <h2>About the project</h2>
       <p>
         This project documents the development and evolution of a custom dashboard.
-        It provides access to the latest version, previous releases, and a full changelog.
+        It provides direct access to the latest version, previous releases,
+        and a detailed changelog.
       </p>
-      <p>
-        Built as a static web project and hosted using GitHub Pages.
+      <p class="muted">
+        Built as a static web application and hosted with GitHub Pages.
       </p>
     </section>
 
-    <section>
+    <section class="card">
       <h2>Quick access</h2>
-      <ul class="links">
-        <li><a href="dashboard/v2/index.html">▶ View Dashboard v2</a></li>
-        <li><a href="dashboard/v1/index.html">🕘 View Dashboard v1</a></li>
-        <li><a href="changelog.html">📄 Changelog</a></li>
-        <li><a href="https://github.com/lalita635dev-prog/dashboard" target="_blank">💻 GitHub Repository</a></li>
-      </ul>
+
+      <div class="actions-grid">
+        <a href="dashboard/v2/index.html" class="action">
+          <span class="icon">🚀</span>
+          <div>
+            <strong>Dashboard v2</strong>
+            <small>Latest version</small>
+          </div>
+        </a>
+
+        <a href="dashboard/v1/index.html" class="action">
+          <span class="icon">🕘</span>
+          <div>
+            <strong>Dashboard v1</strong>
+            <small>Previous release</small>
+          </div>
+        </a>
+
+        <a href="changelog.html" class="action">
+          <span class="icon">📄</span>
+          <div>
+            <strong>Changelog</strong>
+            <small>Version history</small>
+          </div>
+        </a>
+
+        <a href="https://github.com/lalita635dev-prog/dashboard" target="_blank" class="action">
+          <span class="icon">💻</span>
+          <div>
+            <strong>GitHub Repo</strong>
+            <small>Source code</small>
+          </div>
+        </a>
+      </div>
     </section>
 
   </main>

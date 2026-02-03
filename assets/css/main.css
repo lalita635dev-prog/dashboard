@@ -5,66 +5,137 @@
 
 body {
   margin: 0;
-  background: #f9f9f9;
-  color: #222;
+  background: #f4f6f8;
+  color: #1f2933;
 }
 
-.container {
+/* HERO */
+
+.hero {
+  background: linear-gradient(135deg, #111827, #1f2933);
+  color: #fff;
+  padding: 4rem 1.5rem;
+}
+
+.hero-content {
   max-width: 900px;
   margin: 0 auto;
-  padding: 2rem;
 }
 
-header h1 {
-  margin-bottom: 0.3rem;
+.hero h1 {
+  font-size: 2.6rem;
+  margin-bottom: 0.5rem;
 }
 
 .subtitle {
-  color: #555;
+  font-size: 1.1rem;
+  color: #d1d5db;
+  max-width: 600px;
 }
 
 .badge {
   display: inline-block;
-  margin-top: 0.5rem;
-  padding: 0.3rem 0.6rem;
-  background: #222;
-  color: #fff;
-  font-size: 0.8rem;
+  margin-top: 1rem;
+  padding: 0.4rem 0.8rem;
+  background: #2563eb;
+  border-radius: 4px;
+  font-size: 0.85rem;
 }
 
-section {
-  margin-top: 2.5rem;
+.hero-actions {
+  margin-top: 2rem;
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
 }
 
-.links {
-  list-style: none;
-  padding: 0;
-}
+/* BUTTONS */
 
-.links li {
-  margin-bottom: 0.6rem;
-}
-
-.links a,
-.back {
+.btn {
+  padding: 0.7rem 1.3rem;
+  border-radius: 6px;
   text-decoration: none;
-  color: #0066cc;
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
 
-.links a:hover,
-.back:hover {
-  text-decoration: underline;
+.btn.primary {
+  background: #2563eb;
+  color: #fff;
 }
 
-.version h2 span {
-  font-weight: normal;
-  color: #666;
-  font-size: 0.9rem;
+.btn.primary:hover {
+  background: #1d4ed8;
 }
+
+.btn.secondary {
+  border: 1px solid #9ca3af;
+  color: #e5e7eb;
+}
+
+.btn.secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* CONTENT */
+
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 3rem 1.5rem;
+}
+
+.card {
+  background: #fff;
+  border-radius: 10px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+}
+
+.card h2 {
+  margin-top: 0;
+}
+
+.muted {
+  color: #6b7280;
+}
+
+/* ACTIONS */
+
+.actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.action {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 8px;
+  text-decoration: none;
+  color: #1f2933;
+  border: 1px solid #e5e7eb;
+  transition: all 0.2s ease;
+}
+
+.action:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+}
+
+.icon {
+  font-size: 1.8rem;
+}
+
+/* FOOTER */
 
 footer {
   text-align: center;
-  padding: 2rem;
+  padding: 2rem 1rem;
   font-size: 0.85rem;
-  color: #666;
+  color: #6b7280;
 }
