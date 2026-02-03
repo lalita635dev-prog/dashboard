@@ -219,3 +219,69 @@ footer {
   font-size: 0.9rem;
   border-top: 1px solid #e2e8f0;
 }
+
+/* --- GALLERY SECTION --- */
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.screenshot-card {
+  background: var(--white);
+  padding: 0.5rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+  overflow: hidden;
+  transition: transform 0.3s ease;
+}
+
+.screenshot-card:hover {
+  transform: scale(1.03);
+}
+
+.screenshot-card img {
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  display: block;
+}
+
+/* --- ENHANCED FOOTER --- */
+.site-footer {
+  background: #111827; /* Fondo oscuro para destacar */
+  color: #9ca3af;
+  padding: 4rem 1.5rem 2rem 1.5rem;
+  text-align: center;
+  margin-top: 5rem;
+}
+
+.footer-links {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.footer-links a {
+  color: #e5e7eb;
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: color 0.2s;
+}
+
+.footer-links a:hover {
+  color: var(--primary);
+}
+
+.footer-credits {
+  border-top: 1px solid #1f2933;
+  padding-top: 2rem;
+  font-size: 0.85rem;
+}
+
+.footer-credits strong {
+  color: var(--white);
+}
