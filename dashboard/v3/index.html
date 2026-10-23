@@ -20,12 +20,12 @@
     <section id="authGate" class="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/95 p-4">
         <div class="w-full max-w-md rounded-3xl border border-white/10 bg-slate-900 p-7 shadow-2xl">
             <div class="mb-6 text-center"><div class="text-4xl mb-2">💼</div><h1 class="text-2xl font-black text-white">Dashboard v3.0</h1><p class="text-sm text-slate-400 mt-2">Tus trabajos y proyectos, sincronizados de forma segura.</p></div>
-            <div class="flex gap-2 mb-5"><button id="authTabLogin" type="button" class="flex-1 rounded-xl bg-indigo-600 px-3 py-2 font-bold text-white" onclick="Auth.setMode('login')">Ingresar</button><button id="authTabRegister" type="button" class="flex-1 rounded-xl bg-white/10 px-3 py-2 font-bold text-white" onclick="Auth.setMode('register')">Crear cuenta</button></div>
+            <div class="mb-5"><button id="authModeToggle" type="button" class="w-full rounded-xl bg-white/10 px-3 py-2 font-bold text-white hover:bg-white/20">Crear cuenta</button></div>
             <form id="authForm" class="space-y-3">
                 <label class="block text-sm text-slate-300" for="authEmail">Correo electrónico</label><input id="authEmail" type="email" autocomplete="email" required class="w-full rounded-xl border border-white/10 bg-black/30 p-3 text-white" placeholder="tu@email.com">
                 <label class="block text-sm text-slate-300" for="authPassword">Contraseña</label><input id="authPassword" type="password" autocomplete="current-password" minlength="8" required class="w-full rounded-xl border border-white/10 bg-black/30 p-3 text-white" placeholder="Mínimo 8 caracteres">
                 <p id="authHelp" class="text-xs text-slate-400">Ingresá con tu cuenta.</p><button id="authSubmit" class="w-full rounded-xl bg-indigo-600 px-4 py-3 font-bold text-white hover:bg-indigo-500" type="submit">Ingresar</button>
-                <button id="authReset" class="w-full text-sm text-indigo-300 hover:text-white" type="button" onclick="Auth.resetPassword()">Olvidé mi contraseña</button>
+                <button id="authReset" class="w-full text-sm text-indigo-300 hover:text-white" type="button">Olvidé mi contraseña</button>
                 <p id="authMessage" role="status" class="text-sm text-amber-300"></p>
             </form>
             <p class="mt-5 text-center text-xs text-slate-500">Tu información queda separada por cuenta mediante políticas de seguridad de la base de datos.</p>

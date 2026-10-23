@@ -490,10 +490,9 @@ const Auth = {
         this.mode = mode;
         const registering = mode === 'register';
         const recovering = mode === 'recovery';
-        document.getElementById('authTabLogin').classList.toggle('hidden', recovering);
-        document.getElementById('authTabRegister').classList.toggle('hidden', recovering);
-        document.getElementById('authTabLogin').className = `flex-1 rounded-xl px-3 py-2 font-bold text-white ${registering ? 'bg-white/10' : 'bg-indigo-600'}`;
-        document.getElementById('authTabRegister').className = `flex-1 rounded-xl px-3 py-2 font-bold text-white ${registering ? 'bg-indigo-600' : 'bg-white/10'}`;
+        const modeToggle = document.getElementById('authModeToggle');
+        modeToggle.classList.toggle('hidden', recovering);
+        modeToggle.textContent = registering ? 'Ya tengo una cuenta · Ingresar' : 'Crear cuenta';
         document.getElementById('authSubmit').textContent = recovering ? 'Guardar contraseña nueva' : (registering ? 'Crear cuenta' : 'Ingresar');
         document.getElementById('authHelp').textContent = recovering ? 'Elegí una contraseña nueva de al menos 8 caracteres.' : (registering ? 'Usá un correo válido y una contraseña de al menos 8 caracteres.' : 'Ingresá con tu cuenta.');
         document.getElementById('authReset').classList.toggle('hidden', registering || recovering);
@@ -566,6 +565,8 @@ const App = {
         }
         window.supabaseClient = window.supabase.createClient(DASHBOARD_CONFIG.SUPABASE_URL, DASHBOARD_CONFIG.SUPABASE_ANON_KEY);
         document.getElementById('authForm').addEventListener('submit', event => Auth.submit(event));
+        document.getElementById('authModeToggle').addEventListener('click', () => Auth.setMode(Auth.mode === 'register' ? 'login' : 'register'));
+        document.getElementById('authReset').addEventListener('click', () => Auth.resetPassword());
         const { data: { session }, error } = await window.supabaseClient.auth.getSession();
         if (error) Auth.message('No se pudo verificar la sesión. Volvé a ingresar.');
         if (session) await this.enter(session.user);

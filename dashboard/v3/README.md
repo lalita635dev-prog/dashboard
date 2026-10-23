@@ -26,3 +26,9 @@ No se incluye importación de datos de la versión anterior. La exportación JSO
 
 ## Seguridad
 Nunca colocar la clave `service_role` en el navegador ni en `config.js`. En Render se recomienda configurar `SUPABASE_URL` y `SUPABASE_ANON_KEY` como variables de entorno. No publicar el dashboard antes de ejecutar el SQL y verificar las políticas RLS.
+
+
+## Corrección de autenticación (v3.0.1)
+- Se quitó el botón duplicado de Ingresar en la parte superior.
+- El botón superior permite alternar entre Crear cuenta e Ingresar; el botón del formulario ejecuta la acción seleccionada.
+- Se conectaron los eventos de autenticación mediante JavaScript y se ajustó la CSP para compatibilidad con los controladores inline heredados de la aplicación. Esta excepción de CSP es temporal; antes de comercializar conviene migrar todos los controladores inline y retirarla.

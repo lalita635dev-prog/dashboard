@@ -12,6 +12,9 @@ app.use(helmet({
     directives: {
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'", "https://cdn.tailwindcss.com", "https://cdn.jsdelivr.net", "'unsafe-inline'", "'unsafe-eval'"],
+      // Compatibilidad temporal con los onclick heredados en v3; conviene migrarlos
+      // a addEventListener y retirar esta excepción en una futura revisión de seguridad.
+      scriptSrcAttr: ["'unsafe-inline'"],
       styleSrc: ["'self'", "https://cdn.tailwindcss.com", "'unsafe-inline'"],
       imgSrc: ["'self'", 'data:', 'https:'],
       connectSrc: ["'self'", 'https://*.supabase.co', 'wss://*.supabase.co'],
