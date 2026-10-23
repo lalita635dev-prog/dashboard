@@ -32,3 +32,13 @@ Nunca colocar la clave `service_role` en el navegador ni en `config.js`. En Rend
 - Se quitó el botón duplicado de Ingresar en la parte superior.
 - El botón superior permite alternar entre Crear cuenta e Ingresar; el botón del formulario ejecuta la acción seleccionada.
 - Se conectaron los eventos de autenticación mediante JavaScript y se ajustó la CSP para compatibilidad con los controladores inline heredados de la aplicación. Esta excepción de CSP es temporal; antes de comercializar conviene migrar todos los controladores inline y retirarla.
+
+
+## Versión 3.0.1
+
+- Se reemplazaron los manejadores de eventos inline por `addEventListener` y delegación de eventos.
+- Se eliminó la opción y la función de exportación JSON.
+- Se agregó escape de texto dinámico antes de insertarlo en HTML y validación de URL para enlaces externos.
+- Se retiró la excepción CSP `script-src-attr 'unsafe-inline'` y el permiso `'unsafe-inline'` de `script-src`.
+- Los datos continúan guardándose en Supabase por usuario. La exportación no era el mecanismo de persistencia.
+- La advertencia de Tailwind CDN sigue siendo independiente; se recomienda compilar Tailwind localmente antes de una publicación comercial.

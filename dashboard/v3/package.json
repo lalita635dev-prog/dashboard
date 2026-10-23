@@ -1,6 +1,6 @@
 {
   "name": "dashboard-lali-v3",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "private": true,
   "description": "Dashboard personal con Supabase Auth y PostgreSQL",
   "main": "server.js",

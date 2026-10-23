@@ -4,6 +4,17 @@ let currentUser = null;
 let saveQueue = Promise.resolve();
 
 const TABLES = { jobs: 'dashboard_jobs', projects: 'dashboard_projects', tools: 'dashboard_tools' };
+
+// Todo dato procedente del usuario o de Supabase se escapa antes de insertarse en HTML.
+const escapeHTML = value => String(value ?? '').replace(/[&<>\"']/g, char => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', "'": '&#39;'
+}[char]));
+const safeURL = value => {
+    try {
+        const url = new URL(String(value || ''), window.location.origin);
+        return ['http:', 'https:'].includes(url.protocol) ? url.href : '';
+    } catch { return ''; }
+};
 const Storage = {
     async loadAll() {
         if (!currentUser) throw new Error('No hay una sesión activa.');
@@ -37,7 +48,7 @@ const Storage = {
 };
 
 /* VERSIONADO */
-const APP_VERSION = "v3.0.0";
+const APP_VERSION = "v3.0.1";
 document.getElementById("appVersion").innerText = APP_VERSION;
 
 /* THEME */
@@ -62,7 +73,7 @@ const Notify = (msg, type = 'success') => {
         error: 'bg-red-600'
     };
     toast.className = `toast ${colors[type]} text-white px-6 py-3 rounded-2xl shadow-2xl font-bold text-sm flex items-center gap-2`;
-    toast.innerHTML = `<span>${type === 'success' ? '✅' : 'ℹ️'}</span> ${msg}`;
+    toast.textContent = `${type === 'success' ? '✅' : 'ℹ️'} ${msg}`;
     container.appendChild(toast);
     setTimeout(() => toast.remove(), 2500);
 };
@@ -78,10 +89,10 @@ const CopyText = (text) => {
 const UI = {
     init() {
         this.showJobs();
-        document.getElementById('globalSearch').oninput = (e) => {
+        document.getElementById('globalSearch').addEventListener('input', (e) => {
             State.searchTerm = e.target.value.toLowerCase();
             this.refreshCurrentTab();
-        };
+        });
     },
     resetTabs() {
         document.querySelectorAll('.tab').forEach(b => {
@@ -140,7 +151,7 @@ const Jobs = {
     render() {
         const c = document.getElementById('mainContentList');
         c.innerHTML = '';
-        State.jobs.filter(j => j.name.toLowerCase().includes(State.searchTerm)).forEach(j => {
+        State.jobs.filter(j => String(j.name || '').toLowerCase().includes(State.searchTerm)).forEach(j => {
             const card = document.createElement('div');
             card.className = 'relative bg-slate-900/60 p-6 rounded-tr-[40px] border-l-4 border-indigo-500 shadow-xl mb-6';
             card.className += " active:scale-95 transition";
@@ -148,30 +159,30 @@ const Jobs = {
                 <div class="absolute top-0 right-0 bg-indigo-600 text-white text-[9px] font-black px-4 py-1.5 rounded-bl-xl uppercase tracking-widest">PERFIL TRABAJO</div>
                 <div class="flex justify-between items-start mb-6">
                     <div>
-                        <h3 class="text-3xl font-black text-white">${j.name}</h3>
-                        <p class="text-indigo-400 font-bold text-xs uppercase">${j.role || ''} • ${j.contract || ''}</p>
+                        <h3 class="text-3xl font-black text-white">${escapeHTML(j.name)}</h3>
+                        <p class="text-indigo-400 font-bold text-xs uppercase">${escapeHTML(j.role || '')} • ${escapeHTML(j.contract || '')}</p>
                     </div>
                     <div class="flex gap-3">
-                        <button onclick="Jobs.edit(${j.id})" class="text-indigo-400 hover:scale-125 transition">✏️</button>
-                        <button onclick="Jobs.remove(${j.id})" class="text-red-400 hover:scale-125 transition">✖</button>
+                        <button data-action="job-edit" data-id="${escapeHTML(j.id)}" class="text-indigo-400 hover:scale-125 transition">✏️</button>
+                        <button data-action="job-remove" data-id="${escapeHTML(j.id)}" class="text-red-400 hover:scale-125 transition">✖</button>
                     </div>
                 </div>
                 <div class="grid md:grid-cols-2 gap-8">
                     <div>
                         <div class="flex items-center gap-2">
-                             ${j.link ? `<a href="${j.link}" target="_blank" class="bg-indigo-500/20 px-4 py-2 rounded-xl text-white text-sm border border-indigo-500/30">🔗 ${j.linkName || 'Acceso'}</a>` : ''}
-                             ${j.link ? `<button onclick="CopyText('${j.link}')" class="text-xs text-white/40 hover:text-white">📋</button>` : ''}
+                             ${j.link && safeURL(j.link) ? `<a rel="noopener noreferrer" href="${escapeHTML(safeURL(j.link))}" target="_blank" class="bg-indigo-500/20 px-4 py-2 rounded-xl text-white text-sm border border-indigo-500/30">🔗 ${escapeHTML(j.linkName || 'Acceso')}</a>` : ''}
+                             ${j.link ? `<button data-action="job-copy-link" data-id="${escapeHTML(j.id)}" class="text-xs text-white/40 hover:text-white">📋</button>` : ''}
                         </div>
                         <div class="relative mt-4 p-4 bg-black/20 rounded-xl text-sm italic text-slate-400 border border-white/5 whitespace-pre-line group">
-                            ${j.notes || 'Sin notas.'}
-                            <button onclick="CopyText('${j.notes}')" class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition text-[10px] bg-indigo-500 text-white px-2 py-1 rounded">COPIAR</button>
+                            ${escapeHTML(j.notes || 'Sin notas.')}
+                            <button data-action="job-copy-notes" data-id="${escapeHTML(j.id)}" class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition text-[10px] bg-indigo-500 text-white px-2 py-1 rounded">COPIAR</button>
                         </div>
                     </div>
                     <div class="bg-white/5 p-4 rounded-xl border border-white/5">
                         <div id="todos-job-${j.id}" class="space-y-1 mb-3"></div>
                         <div class="flex gap-2">
-                            <input id="input-job-${j.id}" class="bg-black/20 p-2 rounded text-xs flex-1 text-white border border-white/10 focus:outline-none" placeholder="Nueva tarea..." onkeypress="if(event.key==='Enter') Jobs.addTodo(${j.id})">
-                            <button onclick="Jobs.addTodo(${j.id})" class="bg-green-600 px-3 rounded text-white font-bold">+</button>
+                            <input id="input-job-${j.id}" class="bg-black/20 p-2 rounded text-xs flex-1 text-white border border-white/10 focus:outline-none" placeholder="Nueva tarea..." data-enter-action="job-add-todo" data-id="${escapeHTML(j.id)}">
+                            <button data-action="job-add-todo" data-id="${escapeHTML(j.id)}" class="bg-green-600 px-3 rounded text-white font-bold">+</button>
                         </div>
                     </div>
                 </div>`;
@@ -185,10 +196,10 @@ const Jobs = {
         c.innerHTML = (job.todos || []).map((t, i) => `
             <div class="flex justify-between items-center group/item text-sm text-white/70">
                 <div class="flex gap-2 items-center">
-                    <input type="checkbox" ${t.done ? 'checked' : ''} onchange="Jobs.toggleTodo(${job.id}, ${i})" class="accent-indigo-500">
-                    <span class="${t.done ? 'line-through opacity-40' : ''}">${t.text}</span>
+                    <input type="checkbox" ${t.done ? 'checked' : ''} data-action="job-toggle-todo" data-id="${escapeHTML(job.id)}" data-index="${i}" class="accent-indigo-500">
+                    <span class="${t.done ? 'line-through opacity-40' : ''}">${escapeHTML(t.text)}</span>
                 </div>
-                <button onclick="Jobs.removeTodo(${job.id}, ${i})" class="opacity-0 group-hover/item:opacity-100 text-red-400 text-[10px]">ELIMINAR</button>
+                <button data-action="job-remove-todo" data-id="${escapeHTML(job.id)}" data-index="${i}" class="opacity-0 group-hover/item:opacity-100 text-red-400 text-[10px]">ELIMINAR</button>
             </div>`).join('');
     },
     save() {
@@ -261,7 +272,7 @@ const Projects = {
         const c = document.getElementById('mainContentList');
         c.innerHTML = '';
 
-        let filtered = State.projects.filter(p => p.name.toLowerCase().includes(State.searchTerm));
+        let filtered = State.projects.filter(p => String(p.name || '').toLowerCase().includes(State.searchTerm));
         if (State.statusFilter !== 'Todos') {
             filtered = filtered.filter(p => p.status === State.statusFilter);
         }
@@ -277,15 +288,15 @@ const Projects = {
             card.innerHTML = `
                 <div class="flex justify-between items-start mb-4">
                     <div>
-                        <h3 class="text-2xl font-bold text-white">${p.name}</h3>
+                        <h3 class="text-2xl font-bold text-white">${escapeHTML(p.name)}</h3>
                         <div class="flex flex-wrap gap-2 text-[10px] uppercase font-bold mt-1 text-indigo-300">
-                            <span class="bg-indigo-500/20 px-2 py-0.5 rounded">${p.status || 'Estado'}</span>
-                            <span>${p.client || 'Sin Cliente'}</span>
+                            <span class="bg-indigo-500/20 px-2 py-0.5 rounded">${escapeHTML(p.status || 'Estado')}</span>
+                            <span>${escapeHTML(p.client || 'Sin Cliente')}</span>
                         </div>
                     </div>
                     <div class="flex gap-2">
-                        <button onclick="Projects.edit(${p.id})" class="hover:scale-125 transition">✏️</button>
-                        <button onclick="Projects.remove(${p.id})" class="text-red-400 hover:scale-125 transition">✖</button>
+                        <button data-action="project-edit" data-id="${escapeHTML(p.id)}" class="hover:scale-125 transition">✏️</button>
+                        <button data-action="project-remove" data-id="${escapeHTML(p.id)}" class="text-red-400 hover:scale-125 transition">✖</button>
                     </div>
                 </div>
                 
@@ -299,16 +310,16 @@ const Projects = {
                             ${this.getLinkBtn(p.secure, '🔐', 'Archivos Cifrados')}
                         </div>
                         <div class="relative group bg-black/30 p-4 rounded-xl text-sm text-slate-400 italic border border-white/5">
-                            ${p.notes || 'Sin notas.'}
-                            <button onclick="CopyText('${p.notes}')" class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 bg-white/10 p-1 rounded">📋</button>
+                            ${escapeHTML(p.notes || 'Sin notas.')}
+                            <button data-action="project-copy-notes" data-id="${escapeHTML(p.id)}" class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 bg-white/10 p-1 rounded">📋</button>
                         </div>
                     </div>
 
                     <div class="bg-indigo-900/10 p-4 rounded-xl border border-indigo-500/10">
                         <div id="todos-proj-${p.id}" class="space-y-1 mb-3"></div>
                         <div class="flex gap-2">
-                            <input id="input-proj-${p.id}" class="bg-black/40 p-2 rounded text-xs flex-1 text-white border border-white/10 focus:outline-none" placeholder="Nueva tarea..." onkeypress="if(event.key==='Enter') Projects.addTodo(${p.id})">
-                            <button onclick="Projects.addTodo(${p.id})" class="bg-indigo-600 px-3 rounded text-white font-bold">+</button>
+                            <input id="input-proj-${p.id}" class="bg-black/40 p-2 rounded text-xs flex-1 text-white border border-white/10 focus:outline-none" placeholder="Nueva tarea..." data-enter-action="project-add-todo" data-id="${escapeHTML(p.id)}">
+                            <button data-action="project-add-todo" data-id="${escapeHTML(p.id)}" class="bg-indigo-600 px-3 rounded text-white font-bold">+</button>
                         </div>
                     </div>
                 </div>
@@ -318,11 +329,12 @@ const Projects = {
         });
     },
     getLinkBtn(url, emoji, label) {
-        if (!url) return '';
+        const href = safeURL(url);
+        if (!href) return '';
         return `
         <div class="flex items-center gap-1 bg-white/5 rounded-lg px-2 py-1 border border-white/5">
-            <a href="${url}" target="_blank" class="text-xs text-white/70 hover:text-white">${emoji} ${label}</a>
-            <button onclick="CopyText('${url}')" class="text-[10px] text-white/30 hover:text-white">📋</button>
+            <a href="${escapeHTML(href)}" rel="noopener noreferrer" target="_blank" class="text-xs text-white/70 hover:text-white">${escapeHTML(emoji)} ${escapeHTML(label)}</a>
+            <button data-action="copy-url" data-url="${escapeHTML(url)}" class="text-[10px] text-white/30 hover:text-white">📋</button>
         </div>`;
     },
     renderTodos(proj) {
@@ -331,10 +343,10 @@ const Projects = {
         c.innerHTML = (proj.todos || []).map((t, i) => `
             <div class="flex justify-between items-center group/item text-xs text-white/70">
                 <div class="flex gap-2 items-center">
-                    <input type="checkbox" ${t.done ? 'checked' : ''} onchange="Projects.toggleTodo(${proj.id}, ${i})">
-                    <span class="${t.done ? 'line-through opacity-40' : ''}">${t.text}</span>
+                    <input type="checkbox" ${t.done ? 'checked' : ''} data-action="project-toggle-todo" data-id="${escapeHTML(proj.id)}" data-index="${i}">
+                    <span class="${t.done ? 'line-through opacity-40' : ''}">${escapeHTML(t.text)}</span>
                 </div>
-                <button onclick="Projects.removeTodo(${proj.id}, ${i})" class="opacity-0 group-hover/item:opacity-100 text-red-500 transition">✖</button>
+                <button data-action="project-remove-todo" data-id="${escapeHTML(proj.id)}" data-index="${i}" class="opacity-0 group-hover/item:opacity-100 text-red-500 transition">✖</button>
             </div>`).join('');
     },
     save() {
@@ -416,7 +428,7 @@ const Tools = {
     render() {
         const container = document.getElementById('mainContentList');
         container.innerHTML = '';
-        const filtered = State.tools.filter(t => t.name.toLowerCase().includes(State.searchTerm) || t.category.toLowerCase().includes(State.searchTerm));
+        const filtered = State.tools.filter(t => String(t.name || '').toLowerCase().includes(State.searchTerm) || String(t.category || '').toLowerCase().includes(State.searchTerm));
         
         if(filtered.length === 0) {
             container.innerHTML = `<div class="text-center py-20 text-slate-500">No se encontraron herramientas.</div>`;
@@ -432,19 +444,19 @@ const Tools = {
         Object.entries(groups).forEach(([cat, list]) => {
             const section = document.createElement('div');
             section.innerHTML = `
-                <h3 class="text-indigo-400 font-black uppercase mb-4 border-b border-white/5 pb-2 text-sm tracking-widest">${cat}</h3>
+                <h3 class="text-indigo-400 font-black uppercase mb-4 border-b border-white/5 pb-2 text-sm tracking-widest">${escapeHTML(cat)}</h3>
                 <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
                     ${list.map(t => `
                         <div class="group relative bg-white/5 p-4 rounded-2xl border border-white/5 hover:bg-blue-600/10 transition-all text-center">
                             <div class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 flex gap-1">
-                                <button onclick="Tools.edit(${t.id})" class="text-[10px] bg-black p-1 rounded">✏️</button>
-                                <button onclick="Tools.remove(${t.id})" class="text-[10px] bg-black p-1 rounded">✖</button>
+                                <button data-action="tool-edit" data-id="${escapeHTML(t.id)}" class="text-[10px] bg-black p-1 rounded">✏️</button>
+                                <button data-action="tool-remove" data-id="${escapeHTML(t.id)}" class="text-[10px] bg-black p-1 rounded">✖</button>
                             </div>
-                            <a href="${t.url}" target="_blank">
-                                <div class="text-3xl mb-2">${t.icon || '🚀'}</div>
-                                <div class="text-xs font-bold truncate text-white">${t.name}</div>
-                            </a>
-                            <button onclick="CopyText('${t.url}')" class="text-[10px] text-white/20 hover:text-white mt-1">Copiar URL</button>
+                            ${safeURL(t.url) ? `<a href="${escapeHTML(safeURL(t.url))}" rel="noopener noreferrer" target="_blank">` : '<div>'}
+                                <div class="text-3xl mb-2">${escapeHTML(t.icon || '🚀')}</div>
+                                <div class="text-xs font-bold truncate text-white">${escapeHTML(t.name)}</div>
+                            ${safeURL(t.url) ? '</a>' : '</div>'}
+                            <button data-action="copy-tool-url" data-id="${escapeHTML(t.id)}" class="text-[10px] text-white/20 hover:text-white mt-1">Copiar URL</button>
                         </div>
                     `).join('')}
                 </div>`;
@@ -471,17 +483,6 @@ const Tools = {
         document.getElementById('tIcon').value = t.icon || '';
     },
     remove(id) { if (confirm('¿Eliminar?')) { State.tools = State.tools.filter(t => t.id !== id); Storage.removeItem('tools', id); Storage.saveAll(); this.render(); Notify('Herramienta eliminada', 'error'); } }
-};
-
-const Backup = {
-    exportJSON() {
-        const blob = new Blob([JSON.stringify({ version: APP_VERSION, exportedAt: new Date().toISOString(), jobs: State.jobs, projects: State.projects, tools: State.tools }, null, 2)], { type: 'application/json' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = `backup_${new Date().toLocaleDateString()}.json`;
-        a.click();
-        Notify('Backup exportado');
-    },
 };
 
 const Auth = {
@@ -558,6 +559,58 @@ const App = {
         }
     },
     async start() {
+        // Delegación de eventos: también cubre tarjetas y tareas que se crean dinámicamente.
+        document.addEventListener('click', async event => {
+            const control = event.target.closest('[data-action]');
+            if (!control) return;
+            const id = /^\d+$/.test(control.dataset.id || '') ? Number(control.dataset.id) : control.dataset.id;
+            const index = Number(control.dataset.index);
+            switch (control.dataset.action) {
+                case 'show-jobs': UI.showJobs(); break;
+                case 'show-projects': UI.showProjects(); break;
+                case 'show-tools': UI.showTools(); break;
+                case 'new-item': UI.showFormByTab(); break;
+                case 'hide-forms': UI.hideForms(); break;
+                case 'save-job': Jobs.save(); break;
+                case 'save-project': Projects.save(); break;
+                case 'save-tool': Tools.save(); break;
+                case 'filter': UI.setFilter(control.dataset.status); break;
+                case 'sign-out': await Auth.signOut(); break;
+                case 'job-edit': Jobs.edit(id); break;
+                case 'job-remove': Jobs.remove(id); break;
+                case 'job-add-todo': Jobs.addTodo(id); break;
+                case 'job-remove-todo': Jobs.removeTodo(id, index); break;
+                case 'job-copy-link': CopyText(State.jobs.find(item => item.id === id)?.link); break;
+                case 'job-copy-notes': CopyText(State.jobs.find(item => item.id === id)?.notes); break;
+                case 'project-edit': Projects.edit(id); break;
+                case 'project-remove': Projects.remove(id); break;
+                case 'project-add-todo': Projects.addTodo(id); break;
+                case 'project-remove-todo': Projects.removeTodo(id, index); break;
+                case 'project-copy-notes': CopyText(State.projects.find(item => item.id === id)?.notes); break;
+                case 'copy-url': CopyText(control.dataset.url); break;
+                case 'tool-edit': Tools.edit(id); break;
+                case 'tool-remove': Tools.remove(id); break;
+                case 'copy-tool-url': CopyText(State.tools.find(item => item.id === id)?.url); break;
+            }
+        });
+        document.addEventListener('change', event => {
+            const control = event.target.closest('[data-action="job-toggle-todo"], [data-action="project-toggle-todo"]');
+            if (!control) return;
+            const id = /^\d+$/.test(control.dataset.id || '') ? Number(control.dataset.id) : control.dataset.id;
+            const index = Number(control.dataset.index);
+            if (control.dataset.action === 'job-toggle-todo') Jobs.toggleTodo(id, index);
+            else Projects.toggleTodo(id, index);
+        });
+        document.addEventListener('keydown', event => {
+            if (event.key !== 'Enter') return;
+            const control = event.target.closest('[data-enter-action]');
+            if (!control) return;
+            event.preventDefault();
+            const id = /^\d+$/.test(control.dataset.id || '') ? Number(control.dataset.id) : control.dataset.id;
+            if (control.dataset.enterAction === 'job-add-todo') Jobs.addTodo(id);
+            if (control.dataset.enterAction === 'project-add-todo') Projects.addTodo(id);
+        });
+        document.querySelectorAll('[data-action="set-theme"]').forEach(control => control.addEventListener('change', () => setTheme(control.value)));
         if (!window.supabase || !window.DASHBOARD_CONFIG || !DASHBOARD_CONFIG.SUPABASE_URL || !DASHBOARD_CONFIG.SUPABASE_ANON_KEY || DASHBOARD_CONFIG.SUPABASE_URL.includes('TU_PROYECTO')) {
             Auth.message('Falta configurar Supabase. Seguí las instrucciones de CONFIGURACION.md.');
             document.getElementById('authSubmit').disabled = true;
