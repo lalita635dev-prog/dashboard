@@ -1,0 +1,103 @@
+/* =========================
+   GLOBAL
+========================= */
+
+:root {
+  --bg-from: #2e1065;
+  --bg-via: #1e1b4b;
+  --bg-to: #020617;
+  --accent: #6366f1;
+}
+
+/* =========================
+   THEMES
+========================= */
+
+.theme-emerald {
+  --bg-from: #022c22;
+  --bg-via: #064e3b;
+  --bg-to: #022c22;
+  --accent: #10b981;
+}
+
+.theme-rose {
+  --bg-from: #4c0519;
+  --bg-via: #881337;
+  --bg-to: #4c0519;
+  --accent: #fb7185;
+}
+
+.theme-sky {
+  --bg-from: #082f49;
+  --bg-via: #0c4a6e;
+  --bg-to: #082f49;
+  --accent: #38bdf8;
+}
+
+.theme-amber {
+  --bg-from: #451a03;
+  --bg-via: #78350f;
+  --bg-to: #451a03;
+  --accent: #f59e0b;
+}
+
+/* =========================
+   BODY BACKGROUND
+========================= */
+
+body {
+  background: linear-gradient(
+    to bottom right,
+    var(--bg-from),
+    var(--bg-via),
+    var(--bg-to)
+  );
+}
+
+/* =========================
+   SCROLLBAR
+========================= */
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.5);
+  border-radius: 10px;
+}
+
+/* =========================
+   TOASTS
+========================= */
+
+@keyframes slideIn {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.toast {
+  animation: slideIn 0.3s ease-out;
+}
+
+/* =========================
+   MOBILE UX HELPERS
+========================= */
+
+.card-touch {
+  transition: transform 0.15s ease;
+}
+
+.card-touch:active {
+  transform: scale(0.95);
+}
