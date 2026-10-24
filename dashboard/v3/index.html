@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8" />
-    <title>Dashboard v3.0.1 - Lali</title>
+    <title>Dashboard Project</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="icon" href="https://fav.farm/💼">
@@ -19,29 +19,33 @@
 
     <section id="authGate" class="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/95 p-4">
         <div class="w-full max-w-md rounded-3xl border border-white/10 bg-slate-900 p-7 shadow-2xl">
-            <div class="mb-6 text-center"><div class="text-4xl mb-2">💼</div><h1 class="text-2xl font-black text-white">Dashboard v3.0.1</h1><p class="text-sm text-slate-400 mt-2">Tus trabajos y proyectos, sincronizados de forma segura.</p></div>
+            <div class="mb-6 text-center"><div class="text-4xl mb-2">💼</div><h1 class="text-2xl font-black text-white">Dashboard Project</h1><p class="text-sm text-slate-400 mt-2">Tus trabajos y proyectos, sincronizados de forma segura.</p></div>
             <div class="mb-5"><button id="authModeToggle" type="button" class="w-full rounded-xl bg-white/10 px-3 py-2 font-bold text-white hover:bg-white/20">Crear cuenta</button></div>
             <form id="authForm" class="space-y-3">
                 <label class="block text-sm text-slate-300" for="authEmail">Correo electrónico</label><input id="authEmail" type="email" autocomplete="email" required class="w-full rounded-xl border border-white/10 bg-black/30 p-3 text-white" placeholder="tu@email.com">
                 <label class="block text-sm text-slate-300" for="authPassword">Contraseña</label><input id="authPassword" type="password" autocomplete="current-password" minlength="8" required class="w-full rounded-xl border border-white/10 bg-black/30 p-3 text-white" placeholder="Mínimo 8 caracteres">
-                <p id="authHelp" class="text-xs text-slate-400">Ingresá con tu cuenta.</p><button id="authSubmit" class="w-full rounded-xl bg-indigo-600 px-4 py-3 font-bold text-white hover:bg-indigo-500" type="submit">Ingresar</button>
+                <p id="authHelp" class="text-xs text-slate-400">Ingresá con tu cuenta.</p>
+                <div id="legalAcceptance" class="hidden space-y-3 rounded-xl border border-white/10 bg-black/20 p-3 text-sm">
+                    <div class="flex items-start gap-2"><input id="acceptTerms" type="checkbox" aria-label="Acepto los términos y condiciones" class="mt-1 accent-indigo-500"><span>Acepto los</span><button type="button" data-action="open-legal" data-legal="terms" class="text-indigo-300 underline">Términos y condiciones</button><span>.</span></div>
+                    <div class="flex items-start gap-2"><input id="acceptPrivacy" type="checkbox" aria-label="Acepto la política de privacidad" class="mt-1 accent-indigo-500"><span>Acepto la</span><button type="button" data-action="open-legal" data-legal="privacy" class="text-indigo-300 underline">Política de privacidad</button><span>.</span></div>
+                    <p class="text-xs text-slate-400">Debés aceptar ambos documentos para crear una cuenta.</p>
+                </div>
+                <button id="authSubmit" class="w-full rounded-xl bg-indigo-600 px-4 py-3 font-bold text-white hover:bg-indigo-500" type="submit">Ingresar</button>
                 <button id="authReset" class="w-full text-sm text-indigo-300 hover:text-white" type="button">Olvidé mi contraseña</button>
                 <p id="authMessage" role="status" class="text-sm text-amber-300"></p>
             </form>
-            <p class="mt-5 text-center text-xs text-slate-500">Tu información queda separada por cuenta mediante políticas de seguridad de la base de datos.</p>
+            <p class="mt-5 text-center text-xs text-slate-500">Ahora podes guardar tu información en nuestra base de datos creando tu usuario.</p>
         </div>
     </section>
 
     <header id="appHeader" class="hidden bg-black/20 backdrop-blur-md p-4 flex flex-wrap justify-between items-center gap-4 sticky top-0 z-50 border-b border-white/5">
         <div class="flex gap-2">
             <button id="tab-jobs" data-action="show-jobs"
-                class="tab bg-indigo-600 px-5 py-2 rounded-xl text-white font-bold transition-all">💼 Trabajos</button>
+                class="tab bg-indigo-600 px-5 py-2 rounded-xl text-white font-bold transition-all">🗃️ Trabajos</button>
             <button id="tab-projects" data-action="show-projects"
-                class="tab bg-white/10 px-5 py-2 rounded-xl text-white hover:bg-white/20 transition-all">📁
-                Proyectos</button>
+                class="tab bg-white/10 px-5 py-2 rounded-xl text-white hover:bg-white/20 transition-all">🧩 Proyectos</button>
             <button id="tab-tools" data-action="show-tools"
-                class="tab bg-white/10 px-5 py-2 rounded-xl text-white hover:bg-white/20 transition-all">🛠️
-                Herramientas</button>
+                class="tab bg-white/10 px-5 py-2 rounded-xl text-white hover:bg-white/20 transition-all">🧰 Herramientas</button>
         </div>
 
         <div class="flex-1 max-w-md mx-4">
@@ -50,15 +54,14 @@
         </div>
 
         <select data-action="set-theme" class="bg-black/30 text-xs px-3 py-2 rounded-lg border border-white/10">
-            <option value="">🌑 Default</option>
-            <option value="theme-emerald">🟢 Emerald</option>
-            <option value="theme-rose">🌸 Rose</option>
-            <option value="theme-sky">☁️ Sky</option>
-            <option value="theme-amber">🔥 Amber</option>
+            <option value="">🌑 Tema</option>
+            <option value="">💜 Mente Mágica (Default)</option>
+            <option value="theme-emerald">🍃 Modo Zen</option>
+            <option value="theme-rose">🥀 Vibras Dulces</option>
+            <option value="theme-sky">☁️ Calma Total</option>
+            <option value="theme-amber">🔥 Pura Energía</option>
         </select>
-
-
-
+        <button data-action="open-profile" class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-bold text-white hover:bg-indigo-500">Perfil</button>
     </header>
 
     <main id="appMain" class="hidden max-w-6xl mx-auto p-6">
@@ -181,6 +184,27 @@
     </main>
 
     <div id="userBar" class="hidden fixed bottom-4 left-4 z-[80] flex items-center gap-3 rounded-xl border border-white/10 bg-slate-900/95 px-4 py-2 text-xs text-slate-300 shadow-xl"><span id="currentUser"></span><button data-action="sign-out" class="rounded-lg bg-white/10 px-3 py-1.5 text-white hover:bg-red-600">Cerrar sesión</button></div>
+    <div id="profileModal" class="hidden fixed inset-0 z-[300] flex items-center justify-center bg-black/80 p-4" role="dialog" aria-modal="true" aria-labelledby="profileTitle">
+        <section class="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border border-white/10 bg-slate-900 p-6 shadow-2xl">
+            <div class="mb-5 flex items-center justify-between gap-3"><h2 id="profileTitle" class="text-2xl font-black text-white">Perfil de usuario</h2><button data-action="close-modal" data-modal="profileModal" class="rounded-lg bg-white/10 px-3 py-1 text-white" aria-label="Cerrar">✕</button></div>
+            <p id="profileEmail" class="mb-4 text-sm text-slate-400"></p>
+            <form id="nicknameForm" class="space-y-3"><label for="profileNickname" class="block text-sm text-slate-300">Apodo o Nick</label><input id="profileNickname" maxlength="40" autocomplete="nickname" class="w-full rounded-xl border border-white/10 bg-black/30 p-3 text-white" placeholder="Cómo querés aparecer en pantalla"><button class="rounded-xl bg-indigo-600 px-4 py-2 font-bold text-white" type="submit">Guardar apodo</button></form>
+            <hr class="my-5 border-white/10">
+            <form id="passwordForm" class="space-y-3"><h3 class="font-bold text-white">Cambiar contraseña</h3><label for="profileNewPassword" class="block text-sm text-slate-300">Nueva contraseña</label><input id="profileNewPassword" type="password" minlength="8" autocomplete="new-password" required class="w-full rounded-xl border border-white/10 bg-black/30 p-3 text-white" placeholder="Mínimo 8 caracteres"><label for="profileConfirmPassword" class="block text-sm text-slate-300">Repetir contraseña</label><input id="profileConfirmPassword" type="password" minlength="8" autocomplete="new-password" required class="w-full rounded-xl border border-white/10 bg-black/30 p-3 text-white" placeholder="Repetí la contraseña"><button class="rounded-xl bg-white/10 px-4 py-2 font-bold text-white hover:bg-white/20" type="submit">Actualizar contraseña</button></form>
+            <hr class="my-5 border-white/10">
+            <div class="space-y-2"><h3 class="font-bold text-white">Copia de seguridad</h3><p class="text-sm text-slate-400">Descargá un archivo JSON con tus trabajos, proyectos y herramientas.</p><button data-action="backup-json" class="rounded-xl bg-emerald-600 px-4 py-2 font-bold text-white hover:bg-emerald-500">Backup</button></div>
+            <p id="profileMessage" class="mt-4 text-sm text-amber-300" role="status"></p>
+        </section>
+    </div>
+
+    <div id="legalModal" class="hidden fixed inset-0 z-[310] flex items-center justify-center bg-black/80 p-4" role="dialog" aria-modal="true" aria-labelledby="legalTitle">
+        <section class="w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-2xl border border-white/10 bg-slate-900 p-6 shadow-2xl">
+            <div class="mb-5 flex items-center justify-between gap-3"><h2 id="legalTitle" class="text-2xl font-black text-white">Información legal</h2><button data-action="close-modal" data-modal="legalModal" class="rounded-lg bg-white/10 px-3 py-1 text-white" aria-label="Cerrar">✕</button></div>
+            <article id="legalContent" class="space-y-4 text-sm leading-6 text-slate-300"></article>
+            <div class="mt-6 text-right"><button data-action="close-modal" data-modal="legalModal" class="rounded-xl bg-indigo-600 px-5 py-2 font-bold text-white">Cerrar</button></div>
+        </section>
+    </div>
+
     <script src="script.js"></script>
     <footer id="appFooter" class="hidden mt-20 mb-10 text-center border-t border-white/5 pt-8 pb-4">
         <p class="text-slate-400 text-sm font-medium">
@@ -191,6 +215,7 @@
             </a>
             - Todos los derechos reservados.
         </p>
+        <nav class="mt-3 flex flex-wrap justify-center gap-4 text-sm"><button data-action="open-legal" data-legal="terms" class="text-indigo-300 underline underline-offset-4">Términos y condiciones</button><button data-action="open-legal" data-legal="privacy" class="text-indigo-300 underline underline-offset-4">Política de privacidad</button></nav>
     </footer>
 </body>
 

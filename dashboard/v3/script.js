@@ -48,7 +48,7 @@ const Storage = {
 };
 
 /* VERSIONADO */
-const APP_VERSION = "v3.0.1";
+const APP_VERSION = "v3.1.0";
 document.getElementById("appVersion").innerText = APP_VERSION;
 
 /* THEME */
@@ -179,9 +179,9 @@ const Jobs = {
                         </div>
                     </div>
                     <div class="bg-white/5 p-4 rounded-xl border border-white/5">
-                        <div id="todos-job-${j.id}" class="space-y-1 mb-3"></div>
+                        <div id="todos-job-${escapeHTML(j.id)}" class="space-y-1 mb-3"></div>
                         <div class="flex gap-2">
-                            <input id="input-job-${j.id}" class="bg-black/20 p-2 rounded text-xs flex-1 text-white border border-white/10 focus:outline-none" placeholder="Nueva tarea..." data-enter-action="job-add-todo" data-id="${escapeHTML(j.id)}">
+                            <input id="input-job-${escapeHTML(j.id)}" class="bg-black/20 p-2 rounded text-xs flex-1 text-white border border-white/10 focus:outline-none" placeholder="Nueva tarea..." data-enter-action="job-add-todo" data-id="${escapeHTML(j.id)}">
                             <button data-action="job-add-todo" data-id="${escapeHTML(j.id)}" class="bg-green-600 px-3 rounded text-white font-bold">+</button>
                         </div>
                     </div>
@@ -316,9 +316,9 @@ const Projects = {
                     </div>
 
                     <div class="bg-indigo-900/10 p-4 rounded-xl border border-indigo-500/10">
-                        <div id="todos-proj-${p.id}" class="space-y-1 mb-3"></div>
+                        <div id="todos-proj-${escapeHTML(p.id)}" class="space-y-1 mb-3"></div>
                         <div class="flex gap-2">
-                            <input id="input-proj-${p.id}" class="bg-black/40 p-2 rounded text-xs flex-1 text-white border border-white/10 focus:outline-none" placeholder="Nueva tarea..." data-enter-action="project-add-todo" data-id="${escapeHTML(p.id)}">
+                            <input id="input-proj-${escapeHTML(p.id)}" class="bg-black/40 p-2 rounded text-xs flex-1 text-white border border-white/10 focus:outline-none" placeholder="Nueva tarea..." data-enter-action="project-add-todo" data-id="${escapeHTML(p.id)}">
                             <button data-action="project-add-todo" data-id="${escapeHTML(p.id)}" class="bg-indigo-600 px-3 rounded text-white font-bold">+</button>
                         </div>
                     </div>
@@ -497,6 +497,10 @@ const Auth = {
         document.getElementById('authSubmit').textContent = recovering ? 'Guardar contraseña nueva' : (registering ? 'Crear cuenta' : 'Ingresar');
         document.getElementById('authHelp').textContent = recovering ? 'Elegí una contraseña nueva de al menos 8 caracteres.' : (registering ? 'Usá un correo válido y una contraseña de al menos 8 caracteres.' : 'Ingresá con tu cuenta.');
         document.getElementById('authReset').classList.toggle('hidden', registering || recovering);
+        document.getElementById('legalAcceptance').classList.toggle('hidden', !registering);
+        document.getElementById('acceptTerms').required = registering;
+        document.getElementById('acceptPrivacy').required = registering;
+        if (!registering) { document.getElementById('acceptTerms').checked = false; document.getElementById('acceptPrivacy').checked = false; }
         document.getElementById('authPassword').autocomplete = registering || recovering ? 'new-password' : 'current-password';
         document.getElementById('authPassword').placeholder = recovering ? 'Nueva contraseña' : 'Mínimo 8 caracteres';
         document.getElementById('authMessage').textContent = '';
@@ -510,6 +514,9 @@ const Auth = {
         button.disabled = true; button.textContent = 'Procesando…'; this.message('');
         try {
             if (password.length < 8) throw new Error('La contraseña debe tener al menos 8 caracteres.');
+            if (this.mode === 'register' && (!document.getElementById('acceptTerms').checked || !document.getElementById('acceptPrivacy').checked)) {
+                throw new Error('Para crear la cuenta, tenés que aceptar los términos y la política de privacidad.');
+            }
             if (this.mode === 'recovery') {
                 const { error } = await window.supabaseClient.auth.updateUser({ password });
                 if (error) throw error;
@@ -520,7 +527,15 @@ const Auth = {
                 return;
             }
             const result = this.mode === 'register'
-                ? await window.supabaseClient.auth.signUp({ email, password })
+                ? await window.supabaseClient.auth.signUp({ email, password, options: { data: {
+                    terms_accepted: true,
+                    terms_accepted_at: new Date().toISOString(),
+                    terms_version: '1.0',
+                    privacy_accepted: true,
+                    privacy_accepted_at: new Date().toISOString(),
+                    privacy_version: '1.0',
+                    nickname: ''
+                } } })
                 : await window.supabaseClient.auth.signInWithPassword({ email, password });
             if (result.error) throw result.error;
             if (this.mode === 'register' && !result.data.session) {
@@ -543,6 +558,99 @@ const Auth = {
     async signOut() { await window.supabaseClient.auth.signOut(); location.reload(); }
 };
 
+const Profile = {
+    message(text, isError = false) {
+        const node = document.getElementById('profileMessage');
+        node.textContent = text;
+        node.classList.toggle('text-red-300', isError);
+        node.classList.toggle('text-amber-300', !isError);
+    },
+    async saveNickname(event) {
+        event.preventDefault();
+        const nickname = document.getElementById('profileNickname').value.trim();
+        if (nickname.length > 40) return this.message('El apodo no puede superar los 40 caracteres.', true);
+        try {
+            const { data, error } = await window.supabaseClient.auth.updateUser({ data: { nickname } });
+            if (error) throw error;
+            currentUser = data.user || currentUser;
+            document.getElementById('currentUser').textContent = nickname || currentUser.email || 'Sesión activa';
+            this.message('Apodo actualizado correctamente.');
+        } catch (error) { this.message(error.message || 'No se pudo guardar el apodo.', true); }
+    },
+    async changePassword(event) {
+        event.preventDefault();
+        const password = document.getElementById('profileNewPassword').value;
+        const confirmation = document.getElementById('profileConfirmPassword').value;
+        if (password.length < 8) return this.message('La contraseña debe tener al menos 8 caracteres.', true);
+        if (password !== confirmation) return this.message('Las contraseñas no coinciden.', true);
+        try {
+            const { error } = await window.supabaseClient.auth.updateUser({ password });
+            if (error) throw error;
+            document.getElementById('passwordForm').reset();
+            this.message('Contraseña actualizada correctamente.');
+        } catch (error) { this.message(error.message || 'No se pudo cambiar la contraseña.', true); }
+    },
+    downloadBackup() {
+        const backup = {
+            app: 'Dashboard de Trabajo',
+            version: APP_VERSION,
+            exportedAt: new Date().toISOString(),
+            account: { email: currentUser?.email || '', nickname: currentUser?.user_metadata?.nickname || '' },
+            jobs: State.jobs,
+            projects: State.projects,
+            tools: State.tools
+        };
+        const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `dashboard-backup-${new Date().toISOString().slice(0, 10)}.json`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        Notify('Backup JSON descargado.');
+    }
+};
+
+const Legal = {
+    documents: {
+        terms: {
+            title: 'Términos y condiciones',
+            html: `<p><strong>Última actualización:</strong> 23 de octubre de 2026.</p>
+                <p>Al crear una cuenta y utilizar Dashboard de Trabajo, aceptás estos términos. Si no estás de acuerdo, no crees una cuenta ni utilices la plataforma.</p>
+                <h3 class="font-bold text-white">1. Servicio</h3><p>Dashboard de Trabajo es una herramienta de organización para registrar y administrar trabajos, proyectos y herramientas. El servicio se ofrece actualmente sin cargo y puede modificarse, interrumpirse o discontinuarse.</p>
+                <h3 class="font-bold text-white">2. Cuenta y seguridad</h3><p>Debés proporcionar una dirección de correo válida, mantener la confidencialidad de tus credenciales y utilizar la plataforma de forma lícita. Sos responsable de la actividad realizada desde tu cuenta.</p>
+                <h3 class="font-bold text-white">3. Información del usuario</h3><p>Los datos que ingreses son responsabilidad tuya. No guardes contraseñas de terceros, datos sensibles ni información que no tengas autorización para almacenar. El botón Backup permite descargar una copia JSON de los registros de tu cuenta; guardala en un lugar seguro.</p>
+                <h3 class="font-bold text-white">4. Uso aceptable</h3><p>No intentes acceder a datos de otras cuentas, interferir con la seguridad, abusar del servicio ni utilizarlo para actividades ilegales.</p>
+                <h3 class="font-bold text-white">5. Disponibilidad y responsabilidad</h3><p>La plataforma se ofrece “tal cual”, sin garantía de disponibilidad ininterrumpida ni de conservación permanente de los datos. En esta etapa gratuita pueden ocurrir cambios, interrupciones o pérdida de información. Mantené copias de seguridad de los datos importantes.</p>
+                <h3 class="font-bold text-white">6. Cambios y contacto</h3><p>Estos términos pueden actualizarse cuando cambie el servicio. La versión vigente se mostrará en esta ventana. Para consultas, utilizá los canales de contacto publicados por la responsable del proyecto.</p>`
+        },
+        privacy: {
+            title: 'Política de privacidad',
+            html: `<p><strong>Última actualización:</strong> 23 de octubre de 2026.</p>
+                <p>Esta política explica cómo se trata la información cuando utilizás Dashboard de Trabajo.</p>
+                <h3 class="font-bold text-white">1. Datos que se procesan</h3><p>Se procesa tu correo electrónico para gestionar la cuenta y la autenticación; el apodo que elijas; y los trabajos, proyectos y herramientas que guardes. Si aceptás los documentos al registrarte, se guardan en los metadatos de la cuenta la fecha y la versión aceptada.</p>
+                <h3 class="font-bold text-white">2. Finalidad</h3><p>Los datos se utilizan para prestar las funciones de la aplicación, sincronizar tu información y administrar el acceso a tu cuenta. No ingreses información sensible o de terceros sin autorización.</p>
+                <h3 class="font-bold text-white">3. Almacenamiento y proveedores</h3><p>La aplicación está alojada en Render y utiliza Supabase para autenticación y almacenamiento de datos. Estos proveedores procesan información técnica necesaria para prestar sus servicios conforme a sus propias condiciones y políticas.</p>
+                <h3 class="font-bold text-white">4. Acceso y seguridad</h3><p>Las políticas de seguridad de la base de datos restringen los registros de trabajos, proyectos y herramientas a la cuenta propietaria. Ningún sistema puede garantizar seguridad absoluta; protegé tu contraseña y tus archivos de backup.</p>
+                <h3 class="font-bold text-white">5. Conservación y eliminación</h3><p>Los datos se conservan mientras la cuenta y los registros permanezcan activos. Para consultar o solicitar la eliminación de una cuenta o datos, contactá a la responsable del proyecto. La eliminación puede estar sujeta a las funciones disponibles y a obligaciones legales aplicables.</p>
+                <h3 class="font-bold text-white">6. Cambios</h3><p>Esta política puede actualizarse para reflejar cambios en la aplicación. La versión y fecha vigentes se mostrarán aquí.</p>`
+        }
+    },
+    open(kind) {
+        const doc = this.documents[kind];
+        if (!doc) return;
+        document.getElementById('legalTitle').textContent = doc.title;
+        const content = document.getElementById('legalContent');
+        content.replaceChildren();
+        const template = document.createElement('template');
+        template.innerHTML = doc.html;
+        content.appendChild(template.content.cloneNode(true));
+        document.getElementById('legalModal').classList.remove('hidden');
+    }
+};
+
 const App = {
     async enter(user) {
         currentUser = user;
@@ -550,7 +658,10 @@ const App = {
             await Storage.loadAll();
             document.getElementById('authGate').classList.add('hidden');
             ['appHeader', 'appMain', 'appFooter', 'userBar'].forEach(id => document.getElementById(id).classList.remove('hidden'));
-            document.getElementById('currentUser').textContent = user.email || 'Sesión activa';
+            const nickname = String(user.user_metadata?.nickname || '').trim();
+            document.getElementById('currentUser').textContent = nickname || user.email || 'Sesión activa';
+            document.getElementById('profileEmail').textContent = user.email || '';
+            document.getElementById('profileNickname').value = nickname;
             UI.init();
         } catch (error) {
             console.error(error);
@@ -576,6 +687,10 @@ const App = {
                 case 'save-tool': Tools.save(); break;
                 case 'filter': UI.setFilter(control.dataset.status); break;
                 case 'sign-out': await Auth.signOut(); break;
+                case 'open-profile': document.getElementById('profileMessage').textContent = ''; document.getElementById('profileModal').classList.remove('hidden'); break;
+                case 'close-modal': document.getElementById(control.dataset.modal)?.classList.add('hidden'); break;
+                case 'open-legal': Legal.open(control.dataset.legal); break;
+                case 'backup-json': Profile.downloadBackup(); break;
                 case 'job-edit': Jobs.edit(id); break;
                 case 'job-remove': Jobs.remove(id); break;
                 case 'job-add-todo': Jobs.addTodo(id); break;
@@ -601,7 +716,14 @@ const App = {
             if (control.dataset.action === 'job-toggle-todo') Jobs.toggleTodo(id, index);
             else Projects.toggleTodo(id, index);
         });
+        document.addEventListener('click', event => {
+            if (event.target.id === 'profileModal' || event.target.id === 'legalModal') event.target.classList.add('hidden');
+        });
         document.addEventListener('keydown', event => {
+            if (event.key === 'Escape') {
+                document.getElementById('profileModal').classList.add('hidden');
+                document.getElementById('legalModal').classList.add('hidden');
+            }
             if (event.key !== 'Enter') return;
             const control = event.target.closest('[data-enter-action]');
             if (!control) return;
@@ -620,6 +742,8 @@ const App = {
         document.getElementById('authForm').addEventListener('submit', event => Auth.submit(event));
         document.getElementById('authModeToggle').addEventListener('click', () => Auth.setMode(Auth.mode === 'register' ? 'login' : 'register'));
         document.getElementById('authReset').addEventListener('click', () => Auth.resetPassword());
+        document.getElementById('nicknameForm').addEventListener('submit', event => Profile.saveNickname(event));
+        document.getElementById('passwordForm').addEventListener('submit', event => Profile.changePassword(event));
         const { data: { session }, error } = await window.supabaseClient.auth.getSession();
         if (error) Auth.message('No se pudo verificar la sesión. Volvé a ingresar.');
         if (session) await this.enter(session.user);
