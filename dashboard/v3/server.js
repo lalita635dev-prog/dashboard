@@ -34,6 +34,6 @@ app.get('/config.js', (_req, res) => {
   res.send(`window.DASHBOARD_CONFIG = ${JSON.stringify(config)};`);
 });
 app.use(express.static(publicDir, { extensions: ['html'], etag: true, maxAge: '1h' }));
-app.get('/health', (_req, res) => res.json({ status: 'ok', version: '3.1.0' }));
+app.get('/health', (_req, res) => res.json({ status: 'ok', version: '3.2.0' }));
 app.get('*', (_req, res) => res.sendFile(path.join(publicDir, 'index.html')));
-app.listen(PORT, () => console.log(`Dashboard v3.1.0 escuchando en puerto ${PORT}`));
+app.listen(PORT, () => console.log(`Dashboard Project escuchando en puerto ${PORT}`));

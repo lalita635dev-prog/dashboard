@@ -1,5 +1,5 @@
 /* ESTADO Y PERSISTENCIA EN SUPABASE */
-const State = { jobs: [], projects: [], tools: [], activeTab: 'jobs', editingId: null, searchTerm: '', statusFilter: 'Todos' };
+const State = { jobs: [], projects: [], tools: [], activeTab: 'jobs', editingId: null, searchTerm: '', statusFilter: 'Todos', kanban: null };
 let currentUser = null;
 let saveQueue = Promise.resolve();
 
@@ -48,7 +48,7 @@ const Storage = {
 };
 
 /* VERSIONADO */
-const APP_VERSION = "v3.1.0";
+const APP_VERSION = "v3.2.0";
 document.getElementById("appVersion").innerText = APP_VERSION;
 
 /* THEME */
@@ -130,15 +130,15 @@ const UI = {
         if (State.activeTab === 'projects') document.getElementById('formProjects').classList.toggle('hidden');
         if (State.activeTab === 'tools') document.getElementById('formTools').classList.toggle('hidden');
     },
-    showJobs() { this.resetTabs(); State.activeTab = 'jobs'; document.getElementById('tab-jobs').classList.add('bg-indigo-600', 'font-bold'); Jobs.render(); },
+    showJobs() { State.kanban = null; this.resetTabs(); State.activeTab = 'jobs'; document.getElementById('tab-jobs').classList.add('bg-indigo-600', 'font-bold'); Jobs.render(); },
     showProjects() {
-        this.resetTabs();
+        State.kanban = null; this.resetTabs();
         State.activeTab = 'projects';
         document.getElementById('tab-projects').classList.add('bg-indigo-600', 'font-bold');
         document.getElementById('filterBar').classList.remove('hidden');
         Projects.render();
     },
-    showTools() { this.resetTabs(); State.activeTab = 'tools'; document.getElementById('tab-tools').classList.add('bg-indigo-600', 'font-bold'); Tools.render(); },
+    showTools() { State.kanban = null; this.resetTabs(); State.activeTab = 'tools'; document.getElementById('tab-tools').classList.add('bg-indigo-600', 'font-bold'); Tools.render(); },
     refreshCurrentTab() {
         if (State.activeTab === 'jobs') Jobs.render();
         if (State.activeTab === 'projects') Projects.render();
@@ -162,7 +162,8 @@ const Jobs = {
                         <h3 class="text-3xl font-black text-white">${escapeHTML(j.name)}</h3>
                         <p class="text-indigo-400 font-bold text-xs uppercase">${escapeHTML(j.role || '')} • ${escapeHTML(j.contract || '')}</p>
                     </div>
-                    <div class="flex gap-3">
+                    <div class="flex gap-3 items-center">
+                        <button data-action="open-kanban" data-type="jobs" data-id="${escapeHTML(j.id)}" class="rounded-lg bg-indigo-600/20 border border-indigo-500/30 px-3 py-1.5 text-xs font-bold text-indigo-200 hover:bg-indigo-600/40">📋 Tablero</button>
                         <button data-action="job-edit" data-id="${escapeHTML(j.id)}" class="text-indigo-400 hover:scale-125 transition">✏️</button>
                         <button data-action="job-remove" data-id="${escapeHTML(j.id)}" class="text-red-400 hover:scale-125 transition">✖</button>
                     </div>
@@ -214,7 +215,8 @@ const Jobs = {
             linkName: document.getElementById('jLinkName').value, 
             link: document.getElementById('jUrl').value, 
             notes: document.getElementById('jNotes').value, 
-            todos: State.editingId ? (State.jobs.find(j => j.id === State.editingId)?.todos || []) : [] 
+            todos: State.editingId ? (State.jobs.find(j => j.id === State.editingId)?.todos || []) : [],
+            kanbanTasks: State.editingId ? (State.jobs.find(j => j.id === State.editingId)?.kanbanTasks || []) : []
         };
 
         if (State.editingId) {
@@ -294,7 +296,8 @@ const Projects = {
                             <span>${escapeHTML(p.client || 'Sin Cliente')}</span>
                         </div>
                     </div>
-                    <div class="flex gap-2">
+                    <div class="flex gap-2 items-center">
+                        <button data-action="open-kanban" data-type="projects" data-id="${escapeHTML(p.id)}" class="rounded-lg bg-indigo-600/20 border border-indigo-500/30 px-3 py-1.5 text-xs font-bold text-indigo-200 hover:bg-indigo-600/40">📋 Tablero</button>
                         <button data-action="project-edit" data-id="${escapeHTML(p.id)}" class="hover:scale-125 transition">✏️</button>
                         <button data-action="project-remove" data-id="${escapeHTML(p.id)}" class="text-red-400 hover:scale-125 transition">✖</button>
                     </div>
@@ -366,7 +369,8 @@ const Projects = {
             videos: document.getElementById('pVideos').value, 
             secure: document.getElementById('pSecure').value, 
             notes: document.getElementById('pNotes').value, 
-            todos: State.editingId ? (State.projects.find(p => p.id === State.editingId)?.todos || []) : [] 
+            todos: State.editingId ? (State.projects.find(p => p.id === State.editingId)?.todos || []) : [],
+            kanbanTasks: State.editingId ? (State.projects.find(p => p.id === State.editingId)?.kanbanTasks || []) : []
         };
 
         if (State.editingId) {
@@ -420,6 +424,126 @@ const Projects = {
         p.todos.splice(i, 1);
         Storage.saveAll(); this.renderTodos(p);
         Notify('Tarea eliminada', 'info');
+    }
+};
+
+/* TABLEROS KANBAN: las tareas se guardan dentro del registro JSONB del proyecto/trabajo. */
+const Kanban = {
+    statuses: [
+        { id: 'pending', label: 'Pendiente', color: 'border-slate-500' },
+        { id: 'progress', label: 'En progreso', color: 'border-blue-500' },
+        { id: 'review', label: 'En revisión', color: 'border-amber-500' },
+        { id: 'done', label: 'Completada', color: 'border-emerald-500' }
+    ],
+    parent() {
+        if (!State.kanban) return null;
+        const list = State.kanban.type === 'jobs' ? State.jobs : State.projects;
+        return list.find(item => String(item.id) === String(State.kanban.id)) || null;
+    },
+    open(type, id) {
+        const list = type === 'jobs' ? State.jobs : State.projects;
+        const parent = list.find(item => String(item.id) === String(id));
+        if (!parent) return;
+        if (!Array.isArray(parent.kanbanTasks)) parent.kanbanTasks = [];
+        State.kanban = { type, id: parent.id };
+        document.getElementById('filterBar').classList.add('hidden');
+        UI.hideForms();
+        this.render();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    },
+    back() {
+        const type = State.kanban?.type;
+        State.kanban = null;
+        if (type === 'jobs') UI.showJobs(); else UI.showProjects();
+    },
+    render() {
+        const parent = this.parent();
+        const container = document.getElementById('mainContentList');
+        if (!parent || !container) { this.back(); return; }
+        const tasks = Array.isArray(parent.kanbanTasks) ? parent.kanbanTasks : [];
+        const typeLabel = State.kanban.type === 'jobs' ? 'Trabajo' : 'Proyecto';
+        container.innerHTML = `
+            <section class="mb-5 flex flex-wrap items-center justify-between gap-3">
+              <div><button data-action="kanban-back" class="mb-3 rounded-lg bg-white/10 px-3 py-2 text-sm text-white hover:bg-white/20">← Volver a ${typeLabel.toLowerCase()}s</button>
+                <p class="text-xs font-bold uppercase tracking-widest text-indigo-300">Tablero Kanban · ${typeLabel}</p>
+                <h2 class="mt-1 text-3xl font-black text-white">${escapeHTML(parent.name)}</h2>
+                <p class="mt-1 text-sm text-slate-400">${tasks.length} tarea${tasks.length === 1 ? '' : 's'} · Los cambios se guardan en Supabase</p>
+              </div>
+              <button data-action="kanban-add" class="rounded-xl bg-indigo-600 px-4 py-3 font-bold text-white hover:bg-indigo-500">＋ Nueva tarea</button>
+            </section>
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">${this.statuses.map(status => {
+                const columnTasks = tasks.filter(task => (task.status || 'pending') === status.id);
+                return `<section class="min-w-0 rounded-2xl border border-white/10 bg-black/15 p-3">
+                  <div class="mb-3 flex items-center justify-between border-b border-white/10 pb-3"><h3 class="font-black text-white">${status.label}</h3><span class="rounded-full bg-white/10 px-2.5 py-1 text-xs text-slate-300">${columnTasks.length}</span></div>
+                  <div class="space-y-3">${columnTasks.length ? columnTasks.map(task => this.taskHTML(task, status)).join('') : '<p class="rounded-xl border border-dashed border-white/10 p-4 text-center text-xs text-slate-500">Sin tareas</p>'}</div>
+                </section>`;
+            }).join('')}</div>`;
+    },
+    taskHTML(task, status) {
+        const due = task.dueDate ? new Date(`${task.dueDate}T00:00:00`) : null;
+        const overdue = due && due < new Date(new Date().toDateString()) && task.status !== 'done';
+        const priority = { low: 'Baja', medium: 'Media', high: 'Alta' }[task.priority] || 'Media';
+        const priorityClass = task.priority === 'high' ? 'bg-red-500/20 text-red-300' : task.priority === 'low' ? 'bg-slate-500/20 text-slate-300' : 'bg-amber-500/20 text-amber-200';
+        return `<article class="rounded-xl border-l-4 ${status.color} border border-white/10 bg-slate-900/90 p-3 shadow-lg">
+          <div class="mb-2 flex items-start justify-between gap-2"><h4 class="break-words font-bold text-white">${escapeHTML(task.title)}</h4><div class="flex shrink-0 gap-1"><button data-action="kanban-edit" data-task-id="${escapeHTML(task.id)}" class="rounded px-1.5 text-sm text-indigo-300 hover:bg-white/10" aria-label="Editar tarea">✏️</button><button data-action="kanban-delete" data-task-id="${escapeHTML(task.id)}" class="rounded px-1.5 text-sm text-red-300 hover:bg-white/10" aria-label="Eliminar tarea">✕</button></div></div>
+          ${task.description ? `<p class="mb-3 whitespace-pre-line break-words text-sm text-slate-400">${escapeHTML(task.description)}</p>` : ''}
+          <div class="mb-3 flex flex-wrap gap-1.5"><span class="rounded-full px-2 py-1 text-[11px] ${priorityClass}">Prioridad ${priority.toLowerCase()}</span>${task.label ? `<span class="rounded-full bg-indigo-500/20 px-2 py-1 text-[11px] text-indigo-200">${escapeHTML(task.label)}</span>` : ''}</div>
+          ${task.dueDate ? `<p class="mb-3 text-xs ${overdue ? 'font-bold text-red-300' : 'text-slate-400'}">📅 ${overdue ? 'Vencida · ' : 'Vence · '}${escapeHTML(task.dueDate)}</p>` : ''}
+          <label class="block text-[11px] text-slate-500">Mover a</label><select data-action="kanban-move" data-task-id="${escapeHTML(task.id)}" class="mt-1 w-full rounded-lg border border-white/10 bg-slate-800 p-2 text-xs text-white">${this.statuses.map(item => `<option value="${item.id}" ${item.id === (task.status || 'pending') ? 'selected' : ''}>${item.label}</option>`).join('')}</select>
+        </article>`;
+    },
+    openForm(task = null) {
+        const form = document.getElementById('kanbanTaskForm');
+        if (!form) return;
+        form.reset();
+        document.getElementById('kanbanTaskId').value = task?.id || '';
+        document.getElementById('kanbanTaskTitle').value = task?.title || '';
+        document.getElementById('kanbanTaskDescription').value = task?.description || '';
+        document.getElementById('kanbanTaskPriority').value = task?.priority || 'medium';
+        document.getElementById('kanbanTaskDueDate').value = task?.dueDate || '';
+        document.getElementById('kanbanTaskLabel').value = task?.label || '';
+        document.getElementById('kanbanTaskStatus').value = task?.status || 'pending';
+        document.getElementById('kanbanTaskModalTitle').textContent = task ? 'Editar tarea' : 'Nueva tarea';
+        document.getElementById('kanbanTaskModal').classList.remove('hidden');
+        document.getElementById('kanbanTaskTitle').focus();
+    },
+    save(event) {
+        event.preventDefault();
+        const parent = this.parent();
+        if (!parent) return;
+        const title = document.getElementById('kanbanTaskTitle').value.trim();
+        if (!title) { Notify('El título es obligatorio', 'error'); return; }
+        if (!Array.isArray(parent.kanbanTasks)) parent.kanbanTasks = [];
+        const id = document.getElementById('kanbanTaskId').value;
+        const previous = parent.kanbanTasks.find(task => String(task.id) === String(id));
+        const task = {
+            id: previous?.id || (crypto.randomUUID ? crypto.randomUUID() : `task-${Date.now()}-${Math.random().toString(16).slice(2)}`),
+            title,
+            description: document.getElementById('kanbanTaskDescription').value.trim(),
+            priority: document.getElementById('kanbanTaskPriority').value,
+            dueDate: document.getElementById('kanbanTaskDueDate').value,
+            label: document.getElementById('kanbanTaskLabel').value.trim(),
+            status: document.getElementById('kanbanTaskStatus').value,
+            createdAt: previous?.createdAt || new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+        if (previous) parent.kanbanTasks = parent.kanbanTasks.map(item => String(item.id) === String(id) ? task : item);
+        else parent.kanbanTasks.push(task);
+        document.getElementById('kanbanTaskModal').classList.add('hidden');
+        Storage.saveAll(); this.render(); Notify(previous ? 'Tarea actualizada' : 'Tarea creada');
+    },
+    edit(taskId) { const task = this.parent()?.kanbanTasks?.find(item => String(item.id) === String(taskId)); if (task) this.openForm(task); },
+    remove(taskId) {
+        const parent = this.parent();
+        if (!parent || !confirm('¿Eliminar esta tarea del tablero?')) return;
+        parent.kanbanTasks = (parent.kanbanTasks || []).filter(item => String(item.id) !== String(taskId));
+        Storage.saveAll(); this.render(); Notify('Tarea eliminada', 'info');
+    },
+    move(taskId, status) {
+        const task = this.parent()?.kanbanTasks?.find(item => String(item.id) === String(taskId));
+        if (!task || !this.statuses.some(item => item.id === status)) return;
+        task.status = status; task.updatedAt = new Date().toISOString();
+        Storage.saveAll(); this.render(); Notify('Estado actualizado');
     }
 };
 
@@ -617,7 +741,7 @@ const Legal = {
     documents: {
         terms: {
             title: 'Términos y condiciones',
-            html: `<p><strong>Última actualización:</strong> 23 de octubre de 2026.</p>
+            html: `<p><strong>Última actualización:</strong> Octubre de 2026.</p>
                 <p>Al crear una cuenta y utilizar Dashboard de Trabajo, aceptás estos términos. Si no estás de acuerdo, no crees una cuenta ni utilices la plataforma.</p>
                 <h3 class="font-bold text-white">1. Servicio</h3><p>Dashboard de Trabajo es una herramienta de organización para registrar y administrar trabajos, proyectos y herramientas. El servicio se ofrece actualmente sin cargo y puede modificarse, interrumpirse o discontinuarse.</p>
                 <h3 class="font-bold text-white">2. Cuenta y seguridad</h3><p>Debés proporcionar una dirección de correo válida, mantener la confidencialidad de tus credenciales y utilizar la plataforma de forma lícita. Sos responsable de la actividad realizada desde tu cuenta.</p>
@@ -628,7 +752,7 @@ const Legal = {
         },
         privacy: {
             title: 'Política de privacidad',
-            html: `<p><strong>Última actualización:</strong> 23 de octubre de 2026.</p>
+            html: `<p><strong>Última actualización:</strong> Octubre de 2026.</p>
                 <p>Esta política explica cómo se trata la información cuando utilizás Dashboard de Trabajo.</p>
                 <h3 class="font-bold text-white">1. Datos que se procesan</h3><p>Se procesa tu correo electrónico para gestionar la cuenta y la autenticación; el apodo que elijas; y los trabajos, proyectos y herramientas que guardes. Si aceptás los documentos al registrarte, se guardan en los metadatos de la cuenta la fecha y la versión aceptada.</p>
                 <h3 class="font-bold text-white">2. Finalidad</h3><p>Los datos se utilizan para prestar las funciones de la aplicación, sincronizar tu información y administrar el acceso a tu cuenta. No ingreses información sensible o de terceros sin autorización.</p>
@@ -666,7 +790,7 @@ const App = {
         } catch (error) {
             console.error(error);
             currentUser = null;
-            Auth.message('No se pudieron cargar tus datos. Verificá la configuración de Supabase y las políticas SQL.');
+            Auth.message('No se pudieron cargar tus datos. Contactá al desarrollador.');
         }
     },
     async start() {
@@ -680,6 +804,11 @@ const App = {
                 case 'show-jobs': UI.showJobs(); break;
                 case 'show-projects': UI.showProjects(); break;
                 case 'show-tools': UI.showTools(); break;
+                case 'open-kanban': Kanban.open(control.dataset.type, id); break;
+                case 'kanban-back': Kanban.back(); break;
+                case 'kanban-add': Kanban.openForm(); break;
+                case 'kanban-edit': Kanban.edit(control.dataset.taskId); break;
+                case 'kanban-delete': Kanban.remove(control.dataset.taskId); break;
                 case 'new-item': UI.showFormByTab(); break;
                 case 'hide-forms': UI.hideForms(); break;
                 case 'save-job': Jobs.save(); break;
@@ -717,12 +846,13 @@ const App = {
             else Projects.toggleTodo(id, index);
         });
         document.addEventListener('click', event => {
-            if (event.target.id === 'profileModal' || event.target.id === 'legalModal') event.target.classList.add('hidden');
+            if (['profileModal', 'legalModal', 'kanbanTaskModal'].includes(event.target.id)) event.target.classList.add('hidden');
         });
         document.addEventListener('keydown', event => {
             if (event.key === 'Escape') {
                 document.getElementById('profileModal').classList.add('hidden');
                 document.getElementById('legalModal').classList.add('hidden');
+                document.getElementById('kanbanTaskModal').classList.add('hidden');
             }
             if (event.key !== 'Enter') return;
             const control = event.target.closest('[data-enter-action]');
@@ -744,8 +874,10 @@ const App = {
         document.getElementById('authReset').addEventListener('click', () => Auth.resetPassword());
         document.getElementById('nicknameForm').addEventListener('submit', event => Profile.saveNickname(event));
         document.getElementById('passwordForm').addEventListener('submit', event => Profile.changePassword(event));
+        document.getElementById('kanbanTaskForm').addEventListener('submit', event => Kanban.save(event));
+        document.addEventListener('change', event => { const control = event.target.closest('[data-action="kanban-move"]'); if (control) Kanban.move(control.dataset.taskId, control.value); });
         const { data: { session }, error } = await window.supabaseClient.auth.getSession();
-        if (error) Auth.message('No se pudo verificar la sesión. Volvé a ingresar.');
+        if (error) Auth.message('No se pudo completar. Volvé a intentar.');
         if (session) await this.enter(session.user);
         window.supabaseClient.auth.onAuthStateChange((event, session) => {
             if (event === 'PASSWORD_RECOVERY') {

@@ -35,6 +35,7 @@ Nunca colocar la clave `service_role` en el navegador ni en `config.js`. En Rend
 
 
 ## Versión 3.0.1
+
 - Se reemplazaron los manejadores de eventos inline por `addEventListener` y delegación de eventos.
 - Se eliminó la opción y la función de exportación JSON.
 - Se agregó escape de texto dinámico antes de insertarlo en HTML y validación de URL para enlaces externos.
@@ -50,3 +51,10 @@ Nunca colocar la clave `service_role` en el navegador ni en `config.js`. En Rend
 - El Backup JSON incluye los trabajos, proyectos y herramientas de la cuenta activa.
 
 **Importante:** los textos legales incluidos son una base inicial genérica y deben revisarse/adaptarse a la identidad de la persona responsable, los datos de contacto, el funcionamiento real del servicio y la normativa aplicable antes de abrir el registro al público o comercializar la plataforma. La aceptación obligatoria está aplicada en el flujo de registro de la interfaz; no constituye una validación legal independiente del lado del servidor.
+
+
+## v3.2.0 — Tableros Kanban
+- Tablero por cada proyecto y trabajo, con cuatro estados fijos: Pendiente, En progreso, En revisión y Completada.
+- Tareas con título, descripción, prioridad, fecha límite y etiqueta opcional.
+- Las tareas Kanban se almacenan dentro del campo JSONB `data` del registro padre (`dashboard_projects` o `dashboard_jobs`), respetando el aislamiento por usuario ya aplicado con RLS.
+- No requiere migración SQL: reutiliza las tablas existentes y persiste con el mecanismo de guardado actual.
