@@ -36,7 +36,7 @@ const Storage = {
                     if (error) throw error;
                 }
             }
-        }).catch(error => { console.error('Error guardando en Supabase:', error); Notify('No se pudieron guardar los cambios en la nube. Revisá la conexión.', 'error'); });
+        }).catch(error => { console.error('Error guardando en la base de datos:', error); Notify('No se pudieron guardar los cambios en la nube. Revisá la conexión.', 'error'); });
         return saveQueue;
     },
     async removeItem(key, id) {
@@ -427,7 +427,7 @@ const Projects = {
     }
 };
 
-/* TABLEROS KANBAN: las tareas se guardan dentro del registro JSONB del proyecto/trabajo. */
+/* TABLEROS KANBAN: las tareas se guardan dentro del registro JSON del proyecto/trabajo. */
 const Kanban = {
     statuses: [
         { id: 'pending', label: 'Pendiente', color: 'border-slate-500' },
@@ -467,7 +467,7 @@ const Kanban = {
               <div><button data-action="kanban-back" class="mb-3 rounded-lg bg-white/10 px-3 py-2 text-sm text-white hover:bg-white/20">← Volver a ${typeLabel.toLowerCase()}s</button>
                 <p class="text-xs font-bold uppercase tracking-widest text-indigo-300">Tablero Kanban · ${typeLabel}</p>
                 <h2 class="mt-1 text-3xl font-black text-white">${escapeHTML(parent.name)}</h2>
-                <p class="mt-1 text-sm text-slate-400">${tasks.length} tarea${tasks.length === 1 ? '' : 's'} · Los cambios se guardan en Supabase</p>
+                <p class="mt-1 text-sm text-slate-400">${tasks.length} tarea${tasks.length === 1 ? '' : 's'} · Los vencimientos no generan notificaciones</p>
               </div>
               <button data-action="kanban-add" class="rounded-xl bg-indigo-600 px-4 py-3 font-bold text-white hover:bg-indigo-500">＋ Nueva tarea</button>
             </section>
@@ -864,7 +864,7 @@ const App = {
         });
         document.querySelectorAll('[data-action="set-theme"]').forEach(control => control.addEventListener('change', () => setTheme(control.value)));
         if (!window.supabase || !window.DASHBOARD_CONFIG || !DASHBOARD_CONFIG.SUPABASE_URL || !DASHBOARD_CONFIG.SUPABASE_ANON_KEY || DASHBOARD_CONFIG.SUPABASE_URL.includes('TU_PROYECTO')) {
-            Auth.message('Falta configurar Supabase. Seguí las instrucciones de CONFIGURACION.md.');
+            Auth.message('Falta configurar Supabase.');
             document.getElementById('authSubmit').disabled = true;
             return;
         }
