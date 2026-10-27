@@ -1,5 +1,15 @@
-/* ESTADO Y PERSISTENCIA EN SUPABASE */
-const State = { jobs: [], projects: [], tools: [], activeTab: 'jobs', editingId: null, searchTerm: '', statusFilter: 'Todos', kanban: null };
+/* ESTADO Y PERSISTENCIA EN BD */
+const State = {
+    jobs: [],
+    projects: [],
+    tools: [],
+    activeTab: 'jobs',
+    editingId: null,
+    searchTerm: '',
+    statusFilter: 'Todos',
+    projectSort: 'desc',
+    kanban: null
+};
 let currentUser = null;
 let saveQueue = Promise.resolve();
 
@@ -48,7 +58,7 @@ const Storage = {
 };
 
 /* VERSIONADO */
-const APP_VERSION = "v3.2.0";
+const APP_VERSION = "v3.2.3";
 document.getElementById("appVersion").innerText = APP_VERSION;
 
 /* THEME */
@@ -92,6 +102,10 @@ const UI = {
         document.getElementById('globalSearch').addEventListener('input', (e) => {
             State.searchTerm = e.target.value.toLowerCase();
             this.refreshCurrentTab();
+        });
+        document.getElementById('projectSort').addEventListener('change', (e) => {
+            State.projectSort = e.target.value;
+            Projects.render();
         });
     },
     resetTabs() {
@@ -278,6 +292,14 @@ const Projects = {
         if (State.statusFilter !== 'Todos') {
             filtered = filtered.filter(p => p.status === State.statusFilter);
         }
+        filtered.sort((a, b) => {
+            const dateA = Date.parse(a.updatedAt || '') || 0;
+            const dateB = Date.parse(b.updatedAt || '') || 0;
+
+            return State.projectSort === 'asc'
+                ? dateA - dateB
+                : dateB - dateA;
+        });
 
         if(filtered.length === 0) {
             c.innerHTML = `<div class="text-center py-20 text-slate-500">No hay proyectos en esta categoría.</div>`;
@@ -291,9 +313,24 @@ const Projects = {
                 <div class="flex justify-between items-start mb-4">
                     <div>
                         <h3 class="text-2xl font-bold text-white">${escapeHTML(p.name)}</h3>
-                        <div class="flex flex-wrap gap-2 text-[10px] uppercase font-bold mt-1 text-indigo-300">
-                            <span class="bg-indigo-500/20 px-2 py-0.5 rounded">${escapeHTML(p.status || 'Estado')}</span>
-                            <span>${escapeHTML(p.client || 'Sin Cliente')}</span>
+                        <div class="flex flex-wrap gap-2 text-[10px] uppercase font-bold mt-2 text-indigo-300">
+                            <span class="bg-indigo-500/20 px-2 py-0.5 rounded">
+                                ${escapeHTML(p.status || 'Sin estado')}
+                            </span>
+                            
+                            <span class="bg-white/5 px-2 py-0.5 rounded">
+                                Versión: ${escapeHTML(p.version || 'Sin versión')}
+                            </span>
+                            
+                            <span class="bg-white/5 px-2 py-0.5 rounded">
+                                Cliente: ${escapeHTML(p.client || 'Sin cliente')}
+                            </span>
+
+                            <span class="bg-white/5 px-2 py-0.5 rounded">
+                                Último cambio: ${p.updatedAt
+                                ? escapeHTML(new Date(p.updatedAt).toLocaleDateString('es-AR'))
+                                    : 'Sin registro'}
+                            </span>
                         </div>
                     </div>
                     <div class="flex gap-2 items-center">
@@ -332,7 +369,7 @@ const Projects = {
         });
     },
     getLinkBtn(url, emoji, label) {
-        const href = safeURL(url);
+        const href = safeURL(String(url || '').trim());
         if (!href) return '';
         return `
         <div class="flex items-center gap-1 bg-white/5 rounded-lg px-2 py-1 border border-white/5">
@@ -361,13 +398,14 @@ const Projects = {
             name, 
             status: document.getElementById('pStatus').value, 
             version: document.getElementById('pVersion').value, 
-            date: document.getElementById('pDate').value, 
+            date: document.getElementById('pDate').value,
+            updatedAt: new Date().toISOString(), 
             client: document.getElementById('pClient').value, 
-            link: document.getElementById('pLink').value, 
-            qa: document.getElementById('pQaLink').value, 
-            docs: document.getElementById('pDocs').value, 
-            videos: document.getElementById('pVideos').value, 
-            secure: document.getElementById('pSecure').value, 
+            link: document.getElementById('pLink').value.trim(),
+            qa: document.getElementById('pQaLink').value.trim(),
+            docs: document.getElementById('pDocs').value.trim(),
+            videos: document.getElementById('pVideos').value.trim(),
+            secure: document.getElementById('pSecure').value.trim(),
             notes: document.getElementById('pNotes').value, 
             todos: State.editingId ? (State.projects.find(p => p.id === State.editingId)?.todos || []) : [],
             kanbanTasks: State.editingId ? (State.projects.find(p => p.id === State.editingId)?.kanbanTasks || []) : []
@@ -410,18 +448,21 @@ const Projects = {
         const p = State.projects.find(x => x.id === id);
         if (!p.todos) p.todos = [];
         p.todos.push({ text: input.value, done: false });
+        p.updatedAt = new Date().toISOString();
         Storage.saveAll(); this.renderTodos(p); input.value = '';
         Notify('Tarea agregada');
     },
     toggleTodo(id, i) {
         const p = State.projects.find(x => x.id === id);
         p.todos[i].done = !p.todos[i].done;
+        p.updatedAt = new Date().toISOString();
         Storage.saveAll(); this.renderTodos(p);
         if (p.todos[i].done) Notify('Tarea completada');
     },
     removeTodo(id, i) {
         const p = State.projects.find(x => x.id === id);
         p.todos.splice(i, 1);
+        p.updatedAt = new Date().toISOString();
         Storage.saveAll(); this.renderTodos(p);
         Notify('Tarea eliminada', 'info');
     }
@@ -514,6 +555,7 @@ const Kanban = {
         const title = document.getElementById('kanbanTaskTitle').value.trim();
         if (!title) { Notify('El título es obligatorio', 'error'); return; }
         if (!Array.isArray(parent.kanbanTasks)) parent.kanbanTasks = [];
+        
         const id = document.getElementById('kanbanTaskId').value;
         const previous = parent.kanbanTasks.find(task => String(task.id) === String(id));
         const task = {
@@ -540,10 +582,30 @@ const Kanban = {
         Storage.saveAll(); this.render(); Notify('Tarea eliminada', 'info');
     },
     move(taskId, status) {
-        const task = this.parent()?.kanbanTasks?.find(item => String(item.id) === String(taskId));
+        const parent = this.parent();
+        if (!parent) return;
+
+        const task = (parent.kanbanTasks || []).find(
+            item => String(item.id) === String(taskId)
+        );
+
         if (!task || !this.statuses.some(item => item.id === status)) return;
-        task.status = status; task.updatedAt = new Date().toISOString();
-        Storage.saveAll(); this.render(); Notify('Estado actualizado');
+
+        // Comprobar si la tarea ya estaba completada.
+        const wasCompleted = task.status === 'done';
+
+        // Actualizar el estado de la tarea.
+        task.status = status;
+        task.updatedAt = new Date().toISOString();
+
+        // Actualizar el proyecto o trabajo solamente al pasar a Completada.
+        if (status === 'done' && !wasCompleted) {
+            parent.updatedAt = new Date().toISOString();
+        }
+
+        Storage.saveAll();
+        this.render();
+        Notify('Estado actualizado');
     }
 };
 

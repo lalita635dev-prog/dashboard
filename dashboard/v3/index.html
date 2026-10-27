@@ -93,9 +93,14 @@
 
     <main id="appMain" class="hidden max-w-6xl mx-auto p-6">
         <div id="filterBar" class="hidden mb-6 flex flex-wrap gap-2 items-center">
+        <!-- FILTRAR POR ESTADO -->
             <span class="text-xs font-bold text-slate-500 uppercase mr-2">Filtrar por estado:</span>
             <button data-action="filter" data-status="Todos"
                 class="f-btn bg-indigo-600 text-[10px] px-3 py-1 rounded-full text-white font-bold">Todos</button>
+            <button data-action="filter" data-status="En diseño"
+                class="f-btn bg-white/5 text-[10px] px-3 py-1 rounded-full text-white hover:bg-white/10">
+                En diseño
+            </button>
             <button data-action="filter" data-status="En desarrollo"
                 class="f-btn bg-white/5 text-[10px] px-3 py-1 rounded-full text-white hover:bg-white/10">En
                 desarrollo</button>
@@ -103,6 +108,25 @@
                 class="f-btn bg-white/5 text-[10px] px-3 py-1 rounded-full text-white hover:bg-white/10">Testing</button>
             <button data-action="filter" data-status="Producción"
                 class="f-btn bg-white/5 text-[10px] px-3 py-1 rounded-full text-white hover:bg-white/10">Producción</button>
+            <button data-action="filter" data-status="Mantenimiento"
+                class="f-btn bg-white/5 text-[10px] px-3 py-1 rounded-full text-white hover:bg-white/10">
+                Mantenimiento
+            </button>
+            <button data-action="filter" data-status="Offline"
+                class="f-btn bg-white/5 text-[10px] px-3 py-1 rounded-full text-white hover:bg-white/10">
+                Offline
+            </button>
+        <!-- ORDENAR POR FECHA -->
+            <label for="projectSort" class="text-xs text-slate-400 ml-2">
+                Ordenar por cambio:
+            </label>
+
+            <select id="projectSort"
+                class="bg-slate-900 border border-white/10 rounded-full px-3 py-1 text-xs text-white">
+                <option value="desc">Más recientes primero</option>
+                <option value="asc">Más antiguos primero</option>
+            </select>
+
         </div>
 
         <div class="flex justify-between items-end mb-8">
@@ -214,7 +238,8 @@
     <div id="userBar"
         class="hidden fixed bottom-4 left-4 z-[80] flex items-center gap-3 rounded-xl border border-white/10 bg-slate-900/95 px-4 py-2 text-xs text-slate-300 shadow-xl">
         <span id="currentUser"></span><button data-action="sign-out"
-            class="rounded-lg bg-white/10 px-3 py-1.5 text-white hover:bg-red-600">Cerrar sesión</button></div>
+            class="rounded-lg bg-white/10 px-3 py-1.5 text-white hover:bg-red-600">Cerrar sesión</button>
+    </div>
     <div id="kanbanTaskModal" class="hidden fixed inset-0 z-[320] flex items-center justify-center bg-black/80 p-4"
         role="dialog" aria-modal="true" aria-labelledby="kanbanTaskModalTitle">
         <section
