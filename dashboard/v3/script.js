@@ -8,18 +8,22 @@ const State = {
     searchTerm: '',
     statusFilter: 'Todos',
     projectSort: 'desc',
-    kanban: null
+    kanban: null,
+    reminders: [],
+    calendarDate: new Date(),
+    reminderNotified: new Set()
 };
 let currentUser = null;
 let saveQueue = Promise.resolve();
 
 const TABLES = { jobs: 'dashboard_jobs', projects: 'dashboard_projects', tools: 'dashboard_tools' };
+const REMINDERS_TABLE = 'dashboard_reminders';
 
 // Todo dato procedente del usuario o de Supabase se escapa antes de insertarse en HTML.
 const escapeHTML = value => String(value ?? '').replace(/[&<>\"']/g, char => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', "'": '&#39;'
 }[char]));
-
+const safeColor = value => /^#[0-9a-fA-F]{6}$/.test(String(value || '')) ? String(value) : '#6366f1';
 const safeURL = value => {
     const raw = String(value || '').trim();
 
@@ -35,7 +39,6 @@ const safeURL = value => {
         return '';
     }
 };
-
 const Storage = {
     async loadAll() {
         if (!currentUser) throw new Error('No hay una sesión activa.');
@@ -44,6 +47,9 @@ const Storage = {
             if (error) throw error;
             State[key] = (data || []).map(row => ({ ...row.data, id: /^\d+$/.test(row.id) ? Number(row.id) : row.id }));
         }));
+        const { data: reminders, error: reminderError } = await window.supabaseClient.from(REMINDERS_TABLE).select('*').eq('user_id', currentUser.id).order('reminder_date', { ascending: true });
+        if (reminderError) throw reminderError;
+        State.reminders = (reminders || []).map(row => ({ id: row.id, title: row.title, description: row.description || '', date: row.reminder_date, time: row.reminder_time || '', color: row.color || '#6366f1', relation_type: row.relation_type || '', relation_id: row.relation_id || '', relation_label: row.relation_label || '', completed: !!row.completed, notified_at: row.notified_at || null }));
         return results;
     },
     saveAll() {
@@ -69,7 +75,7 @@ const Storage = {
 };
 
 /* VERSIONADO */
-const APP_VERSION = "v3.2.3";
+const APP_VERSION = "v3.3.0";
 document.getElementById("appVersion").innerText = APP_VERSION;
 
 /* THEME */
@@ -126,6 +132,8 @@ const UI = {
         });
         document.getElementById('filterBar').classList.add('hidden');
         this.hideForms();
+        document.getElementById('btnNew').classList.remove('hidden');
+        document.getElementById('globalSearch').classList.remove('hidden');
     },
     hideForms() {
         document.getElementById('formJobs').classList.add('hidden');
@@ -164,10 +172,12 @@ const UI = {
         Projects.render();
     },
     showTools() { State.kanban = null; this.resetTabs(); State.activeTab = 'tools'; document.getElementById('tab-tools').classList.add('bg-indigo-600', 'font-bold'); Tools.render(); },
+    showCalendar() { State.kanban = null; this.resetTabs(); State.activeTab = 'calendar'; document.getElementById('tab-calendar').classList.add('bg-indigo-600', 'font-bold'); document.getElementById('btnNew').classList.add('hidden'); document.getElementById('globalSearch').classList.add('hidden'); Calendar.render(); },
     refreshCurrentTab() {
         if (State.activeTab === 'jobs') Jobs.render();
         if (State.activeTab === 'projects') Projects.render();
         if (State.activeTab === 'tools') Tools.render();
+        if (State.activeTab === 'calendar') Calendar.render();
     }
 };
 
@@ -618,6 +628,101 @@ const Kanban = {
     }
 };
 
+/* AGENDA / RECORDATORIOS */
+const Calendar = {
+    monthNames: ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'],
+    weekdays: ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'],
+    dateKey(date) { const y=date.getFullYear(); const m=String(date.getMonth()+1).padStart(2,'0'); const d=String(date.getDate()).padStart(2,'0'); return `${y}-${m}-${d}`; },
+    render() {
+        const container = document.getElementById('mainContentList');
+        if (!container) return;
+        const year=State.calendarDate.getFullYear(), month=State.calendarDate.getMonth();
+        const first=new Date(year,month,1); const offset=(first.getDay()+6)%7; const days=new Date(year,month+1,0).getDate();
+        const cells=[];
+        for(let i=0;i<offset;i++) cells.push('<div class="min-h-24 rounded-xl border border-white/5 bg-black/10 p-2 opacity-40"></div>');
+        for(let day=1;day<=days;day++) {
+            const date=this.dateKey(new Date(year,month,day));
+            const items=State.reminders.filter(r=>r.date===date);
+            cells.push(`<div class="min-h-24 rounded-xl border border-white/10 bg-slate-900/50 p-2"><div class="mb-2 text-xs font-black ${date===this.dateKey(new Date())?'text-indigo-300':''}">${day}</div><div class="space-y-1">${items.slice(0,3).map(r=>`<button data-action="reminder-edit" data-id="${escapeHTML(r.id)}" title="${escapeHTML(r.title)}" class="block w-full truncate rounded-md px-1.5 py-1 text-left text-[10px] ${r.completed?'opacity-50 line-through':''}" style="background:${safeColor(r.color)}33;border-left:3px solid ${safeColor(r.color)}">${r.time?escapeHTML(r.time)+' ':''}${escapeHTML(r.title)}</button>`).join('')}${items.length>3?`<p class="text-[10px] text-slate-400">+${items.length-3} más</p>`:''}</div></div>`);
+        }
+        container.innerHTML=`<section class="space-y-5"><div class="flex flex-wrap items-center justify-between gap-3"><div><h2 class="text-3xl font-black text-white">📅 Mi agenda</h2><p class="mt-1 text-sm text-slate-400">Recordatorios personales, reunidos en un único calendario.</p></div><button data-action="reminder-new" class="rounded-xl bg-indigo-600 px-4 py-2 font-bold text-white">＋ Nuevo recordatorio</button></div><div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/20 p-3"><div class="flex items-center gap-3"><button data-action="calendar-prev" class="rounded-lg bg-white/10 px-3 py-2" aria-label="Mes anterior">‹</button><h3 class="min-w-44 text-center text-xl font-black text-white">${this.monthNames[month]} ${year}</h3><button data-action="calendar-next" class="rounded-lg bg-white/10 px-3 py-2" aria-label="Mes siguiente">›</button></div><button data-action="calendar-today" class="rounded-lg bg-white/10 px-3 py-2 text-sm">Hoy</button></div><div class="grid grid-cols-7 gap-2">${this.weekdays.map(d=>`<div class="py-1 text-center text-xs font-bold uppercase text-slate-400">${d}</div>`).join('')}${cells.join('')}</div><div class="space-y-3"><h3 class="text-xl font-black text-white">Próximos recordatorios</h3>${this.listHTML()}</div></section>`;
+    },
+    listHTML() {
+        const today=this.dateKey(new Date());
+        const rows=[...State.reminders].filter(r=>!r.completed).sort((a,b)=>(a.date+(a.time||'')).localeCompare(b.date+(b.time||''))).slice(0,30);
+        if(!rows.length) return '<p class="rounded-xl border border-dashed border-white/10 p-6 text-center text-sm text-slate-400">No tenés recordatorios pendientes.</p>';
+        return `<div class="space-y-2">${rows.map(r=>`<article class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/20 p-3" style="border-left:4px solid ${safeColor(r.color)}"><div class="min-w-0 flex-1"><p class="font-bold text-white">${escapeHTML(r.title)}</p><p class="text-xs text-slate-400">${escapeHTML(r.date)} ${r.time?`· ${escapeHTML(r.time)}`:''}${r.relation_label?` · ${escapeHTML(r.relation_label)}`:''}${r.date<today?' · Vencido':''}</p>${r.description?`<p class="mt-1 whitespace-pre-line text-sm text-slate-400">${escapeHTML(r.description)}</p>`:''}</div><div class="flex flex-wrap gap-2"><button data-action="reminder-done" data-id="${escapeHTML(r.id)}" class="rounded-lg bg-emerald-600/20 px-3 py-1.5 text-xs text-emerald-200">Realizado</button><button data-action="reminder-edit" data-id="${escapeHTML(r.id)}" class="rounded-lg bg-white/10 px-3 py-1.5 text-xs">Editar</button><button data-action="reminder-delete" data-id="${escapeHTML(r.id)}" class="rounded-lg bg-red-600/20 px-3 py-1.5 text-xs text-red-200">Eliminar</button></div></article>`).join('')}</div>`;
+    },
+    relatedOptions(type) {
+        if(type==='project') return State.projects.map(x=>({id:String(x.id),label:`Proyecto: ${x.name}`}));
+        if(type==='job') return State.jobs.map(x=>({id:String(x.id),label:`Trabajo: ${x.name}`}));
+        if(type==='task') return [...State.projects.map(p=>(p.kanbanTasks||[]).map(t=>({id:`projects:${p.id}:${t.id}`,label:`Tarea: ${t.title} · ${p.name}`}))).flat(),...State.jobs.map(j=>(j.kanbanTasks||[]).map(t=>({id:`jobs:${j.id}:${t.id}`,label:`Tarea: ${t.title} · ${j.name}`}))).flat()];
+        return [];
+    },
+    relationChanged() {
+        const type=document.getElementById('reminderRelation').value, wrap=document.getElementById('reminderTargetWrap'), select=document.getElementById('reminderTarget');
+        const options=this.relatedOptions(type); wrap.classList.toggle('hidden',!type || !options.length);
+        select.innerHTML=options.map(o=>`<option value="${escapeHTML(o.id)}">${escapeHTML(o.label)}</option>`).join('');
+        if(type && !options.length) { select.innerHTML='<option value="">No hay elementos disponibles</option>'; }
+    },
+    openForm(reminder=null) {
+        const form=document.getElementById('reminderForm'); form.reset();
+        document.getElementById('reminderId').value=reminder?.id||'';
+        document.getElementById('reminderTitle').value=reminder?.title||'';
+        document.getElementById('reminderDescription').value=reminder?.description||'';
+        document.getElementById('reminderDate').value=reminder?.date||this.dateKey(new Date());
+        document.getElementById('reminderTime').value=reminder?.time||'';
+        document.getElementById('reminderColor').value=reminder?.color||'#6366f1';
+        document.getElementById('reminderRelation').value=reminder?.relation_type||'';
+        this.relationChanged();
+        if(reminder?.relation_id) document.getElementById('reminderTarget').value=reminder.relation_id;
+        document.getElementById('reminderModalTitle').textContent=reminder?'Editar recordatorio':'Nuevo recordatorio';
+        document.getElementById('reminderModal').classList.remove('hidden');
+    },
+    async save(event) {
+        event.preventDefault(); if(!currentUser) return;
+        const id=document.getElementById('reminderId').value;
+        const type=document.getElementById('reminderRelation').value;
+        const target=document.getElementById('reminderTarget').value;
+        let relationId='', relationLabel='';
+        if(type==='project') { const x=State.projects.find(i=>String(i.id)===target); relationId=target; relationLabel=x?`Proyecto: ${x.name}`:''; }
+        if(type==='job') { const x=State.jobs.find(i=>String(i.id)===target); relationId=target; relationLabel=x?`Trabajo: ${x.name}`:''; }
+        if(type==='task' && target) { const [kind,parentId,taskId]=target.split(':'); const list=kind==='jobs'?State.jobs:State.projects; const parent=list.find(i=>String(i.id)===parentId); const task=parent?.kanbanTasks?.find(i=>String(i.id)===taskId); relationId=target; relationLabel=task?`Tarea: ${task.title} · ${parent.name}`:''; }
+        const payload={user_id:currentUser.id,title:document.getElementById('reminderTitle').value.trim(),description:document.getElementById('reminderDescription').value.trim(),reminder_date:document.getElementById('reminderDate').value,reminder_time:document.getElementById('reminderTime').value||null,color:safeColor(document.getElementById('reminderColor').value),relation_type:type||null,relation_id:relationId||null,relation_label:relationLabel||null};
+        if(!payload.title||!payload.reminder_date) { Notify('Completá el título y la fecha','error'); return; }
+        let result;
+        if(id) result=await window.supabaseClient.from(REMINDERS_TABLE).update(payload).eq('id',id).eq('user_id',currentUser.id).select().single();
+        else result=await window.supabaseClient.from(REMINDERS_TABLE).insert(payload).select().single();
+        if(result.error) { console.error(result.error); Notify('No se pudo guardar. Verificá que ejecutaste la migración SQL de recordatorios.','error'); return; }
+        const row=result.data, item={id:row.id,title:row.title,description:row.description||'',date:row.reminder_date,time:row.reminder_time||'',color:safeColor(row.color),relation_type:row.relation_type||'',relation_id:row.relation_id||'',relation_label:row.relation_label||'',completed:!!row.completed,notified_at:row.notified_at||null};
+        const ix=State.reminders.findIndex(r=>String(r.id)===String(item.id)); if(ix>=0) State.reminders[ix]=item; else State.reminders.push(item);
+        document.getElementById('reminderModal').classList.add('hidden'); this.render(); Notify('Recordatorio guardado');
+    },
+    async update(id, changes, message) {
+        const result=await window.supabaseClient.from(REMINDERS_TABLE).update(changes).eq('id',id).eq('user_id',currentUser.id).select().single();
+        if(result.error) { console.error(result.error); Notify('No se pudo actualizar el recordatorio','error'); return; }
+        const row=result.data, item=State.reminders.find(r=>String(r.id)===String(id)); if(item) Object.assign(item,{completed:!!row.completed,notified_at:row.notified_at||null});
+        this.render(); Notify(message);
+    },
+    async remove(id) {
+        if(!confirm('¿Eliminar este recordatorio?')) return;
+        const {error}=await window.supabaseClient.from(REMINDERS_TABLE).delete().eq('id',id).eq('user_id',currentUser.id);
+        if(error) { console.error(error); Notify('No se pudo eliminar el recordatorio','error'); return; }
+        State.reminders=State.reminders.filter(r=>String(r.id)!==String(id)); this.render(); Notify('Recordatorio eliminado','info');
+    },
+    checkDue() {
+        if(!currentUser) return;
+        const now=new Date(); const currentDate=this.dateKey(now); const currentTime=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+        for(const r of State.reminders) {
+            const reminderTime=(r.time || '09:00').slice(0,5);
+            if(r.completed || r.date!==currentDate || reminderTime>currentTime) continue;
+            const key=`${currentUser.id}:${r.id}:${r.date}:${reminderTime}`;
+            if(State.reminderNotified.has(key)) continue;
+            State.reminderNotified.add(key); Notify(`Recordatorio: ${r.title}`,'info');
+        }
+    }
+};
+
 /* HERRAMIENTAS */
 const Tools = {
     render() {
@@ -793,7 +898,8 @@ const Profile = {
             account: { email: currentUser?.email || '', nickname: currentUser?.user_metadata?.nickname || '' },
             jobs: State.jobs,
             projects: State.projects,
-            tools: State.tools
+            tools: State.tools,
+            reminders: State.reminders
         };
         const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json;charset=utf-8' });
         const url = URL.createObjectURL(blob);
@@ -875,6 +981,14 @@ const App = {
                 case 'show-jobs': UI.showJobs(); break;
                 case 'show-projects': UI.showProjects(); break;
                 case 'show-tools': UI.showTools(); break;
+                case 'show-calendar': UI.showCalendar(); break;
+                case 'calendar-prev': State.calendarDate = new Date(State.calendarDate.getFullYear(), State.calendarDate.getMonth()-1, 1); Calendar.render(); break;
+                case 'calendar-next': State.calendarDate = new Date(State.calendarDate.getFullYear(), State.calendarDate.getMonth()+1, 1); Calendar.render(); break;
+                case 'calendar-today': State.calendarDate = new Date(); Calendar.render(); break;
+                case 'reminder-new': Calendar.openForm(); break;
+                case 'reminder-edit': Calendar.openForm(State.reminders.find(r => String(r.id) === String(control.dataset.id))); break;
+                case 'reminder-delete': await Calendar.remove(control.dataset.id); break;
+                case 'reminder-done': await Calendar.update(control.dataset.id, { completed: true }, 'Recordatorio marcado como realizado'); break;
                 case 'open-kanban': Kanban.open(control.dataset.type, id); break;
                 case 'kanban-back': Kanban.back(); break;
                 case 'kanban-add': Kanban.openForm(); break;
@@ -921,6 +1035,7 @@ const App = {
         });
         document.addEventListener('keydown', event => {
             if (event.key === 'Escape') {
+                document.getElementById('reminderModal').classList.add('hidden');
                 document.getElementById('profileModal').classList.add('hidden');
                 document.getElementById('legalModal').classList.add('hidden');
                 document.getElementById('kanbanTaskModal').classList.add('hidden');
@@ -946,6 +1061,9 @@ const App = {
         document.getElementById('nicknameForm').addEventListener('submit', event => Profile.saveNickname(event));
         document.getElementById('passwordForm').addEventListener('submit', event => Profile.changePassword(event));
         document.getElementById('kanbanTaskForm').addEventListener('submit', event => Kanban.save(event));
+        document.getElementById('reminderForm').addEventListener('submit', event => Calendar.save(event));
+        document.getElementById('reminderRelation').addEventListener('change', () => Calendar.relationChanged());
+        setInterval(() => Calendar.checkDue(), 30000);
         document.addEventListener('change', event => { const control = event.target.closest('[data-action="kanban-move"]'); if (control) Kanban.move(control.dataset.taskId, control.value); });
         const { data: { session }, error } = await window.supabaseClient.auth.getSession();
         if (error) Auth.message('No se pudo completar. Volvé a intentar.');

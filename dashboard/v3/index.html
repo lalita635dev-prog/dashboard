@@ -72,6 +72,8 @@
             <button id="tab-tools" data-action="show-tools"
                 class="tab bg-white/10 px-5 py-2 rounded-xl text-white hover:bg-white/20 transition-all">🧰
                 Herramientas</button>
+            <button id="tab-calendar" data-action="show-calendar"
+                class="tab bg-white/10 px-5 py-2 rounded-xl text-white hover:bg-white/20 transition-all">📅 Agenda</button>
         </div>
 
         <div class="flex-1 max-w-md mx-4">
@@ -247,6 +249,21 @@
         <span id="currentUser"></span><button data-action="sign-out"
             class="rounded-lg bg-white/10 px-3 py-1.5 text-white hover:bg-red-600">Cerrar sesión</button>
     </div>
+    <div id="reminderModal" class="hidden fixed inset-0 z-[330] flex items-center justify-center bg-black/80 p-4" role="dialog" aria-modal="true" aria-labelledby="reminderModalTitle">
+        <section class="w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl border border-white/10 bg-slate-900 p-6 shadow-2xl">
+            <div class="mb-5 flex items-center justify-between gap-3"><h2 id="reminderModalTitle" class="text-2xl font-black text-white">Nuevo recordatorio</h2><button type="button" data-action="close-modal" data-modal="reminderModal" class="rounded-lg bg-white/10 px-3 py-1 text-white" aria-label="Cerrar">✕</button></div>
+            <form id="reminderForm" class="space-y-4">
+                <input id="reminderId" type="hidden">
+                <div><label for="reminderTitle" class="mb-1 block text-sm text-slate-300">Título *</label><input id="reminderTitle" required maxlength="140" class="w-full rounded-xl border border-white/10 bg-black/30 p-3 text-white" placeholder="Ej. Entregar propuesta al cliente"></div>
+                <div><label for="reminderDescription" class="mb-1 block text-sm text-slate-300">Descripción</label><textarea id="reminderDescription" rows="3" maxlength="2000" class="w-full rounded-xl border border-white/10 bg-black/30 p-3 text-white" placeholder="Detalles (opcional)"></textarea></div>
+                <div class="grid gap-4 sm:grid-cols-2"><div><label for="reminderDate" class="mb-1 block text-sm text-slate-300">Fecha *</label><input id="reminderDate" type="date" required class="w-full rounded-xl border border-white/10 bg-black/30 p-3 text-white"></div><div><label for="reminderTime" class="mb-1 block text-sm text-slate-300">Hora (opcional)</label><input id="reminderTime" type="time" class="w-full rounded-xl border border-white/10 bg-black/30 p-3 text-white"></div></div>
+                <div class="grid gap-4 sm:grid-cols-2"><div><label for="reminderColor" class="mb-1 block text-sm text-slate-300">Color / categoría</label><input id="reminderColor" type="color" value="#6366f1" class="h-12 w-full rounded-xl border border-white/10 bg-black/30 p-2"></div><div><label for="reminderRelation" class="mb-1 block text-sm text-slate-300">Relacionar con (opcional)</label><select id="reminderRelation" class="w-full rounded-xl border border-white/10 bg-slate-800 p-3 text-white"><option value="">Sin relación</option><option value="project">Proyecto</option><option value="job">Trabajo</option><option value="task">Tarea Kanban</option></select></div></div>
+                <div id="reminderTargetWrap" class="hidden"><label for="reminderTarget" class="mb-1 block text-sm text-slate-300">Elemento relacionado</label><select id="reminderTarget" class="w-full rounded-xl border border-white/10 bg-slate-800 p-3 text-white"></select></div>
+                <div class="flex flex-wrap justify-end gap-3 pt-2"><button type="button" data-action="close-modal" data-modal="reminderModal" class="rounded-xl bg-white/10 px-4 py-2 font-bold text-white">Cancelar</button><button type="submit" class="rounded-xl bg-indigo-600 px-5 py-2 font-bold text-white hover:bg-indigo-500">Guardar recordatorio</button></div>
+            </form>
+        </section>
+    </div>
+
     <div id="kanbanTaskModal" class="hidden fixed inset-0 z-[320] flex items-center justify-center bg-black/80 p-4"
         role="dialog" aria-modal="true" aria-labelledby="kanbanTaskModalTitle">
         <section

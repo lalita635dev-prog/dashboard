@@ -58,3 +58,11 @@ Nunca colocar la clave `service_role` en el navegador ni en `config.js`. En Rend
 - Tareas con título, descripción, prioridad, fecha límite y etiqueta opcional.
 - Las tareas Kanban se almacenan dentro del campo JSONB `data` del registro padre (`dashboard_projects` o `dashboard_jobs`), respetando el aislamiento por usuario ya aplicado con RLS.
 - No requiere migración SQL: reutiliza las tablas existentes y persiste con el mecanismo de guardado actual.
+
+## v3.3.0 — Agenda y recordatorios
+
+- Se agrega una agenda mensual única por usuario con recordatorios, color por categoría y estados pendiente/realizado.
+- Los recordatorios pueden relacionarse opcionalmente con un proyecto, un trabajo o una tarea Kanban.
+- Las alertas se muestran dentro de la aplicación mientras está abierta. Los recordatorios sin hora se notifican a las 09:00 hora local del dispositivo.
+- Antes de desplegar esta versión, ejecutar `migration_calendar.sql` en Supabase SQL Editor para crear `dashboard_reminders` y sus políticas RLS.
+- El backup JSON del Perfil ahora incluye los recordatorios.
