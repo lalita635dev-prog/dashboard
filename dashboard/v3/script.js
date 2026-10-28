@@ -399,7 +399,7 @@ const Projects = {
             status: document.getElementById('pStatus').value, 
             version: document.getElementById('pVersion').value, 
             date: document.getElementById('pDate').value,
-            updatedAt: new Date().toISOString(), 
+            updatedAt: document.getElementById('pUpdatedAt').value,
             client: document.getElementById('pClient').value, 
             link: document.getElementById('pLink').value.trim(),
             qa: document.getElementById('pQaLink').value.trim(),
@@ -431,6 +431,7 @@ const Projects = {
         document.getElementById('pStatus').value = p.status || 'En diseño';
         document.getElementById('pVersion').value = p.version || '';
         document.getElementById('pDate').value = p.date || '';
+        document.getElementById('pUpdatedAt').value = p.updatedAt ? String(p.updatedAt).slice(0, 10) : '';
         document.getElementById('pClient').value = p.client || '';
         document.getElementById('pLink').value = p.link || '';
         document.getElementById('pQaLink').value = p.qa || '';
@@ -448,21 +449,18 @@ const Projects = {
         const p = State.projects.find(x => x.id === id);
         if (!p.todos) p.todos = [];
         p.todos.push({ text: input.value, done: false });
-        p.updatedAt = new Date().toISOString();
         Storage.saveAll(); this.renderTodos(p); input.value = '';
         Notify('Tarea agregada');
     },
     toggleTodo(id, i) {
         const p = State.projects.find(x => x.id === id);
         p.todos[i].done = !p.todos[i].done;
-        p.updatedAt = new Date().toISOString();
         Storage.saveAll(); this.renderTodos(p);
         if (p.todos[i].done) Notify('Tarea completada');
     },
     removeTodo(id, i) {
         const p = State.projects.find(x => x.id === id);
         p.todos.splice(i, 1);
-        p.updatedAt = new Date().toISOString();
         Storage.saveAll(); this.renderTodos(p);
         Notify('Tarea eliminada', 'info');
     }

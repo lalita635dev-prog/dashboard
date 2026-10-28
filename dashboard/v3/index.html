@@ -93,7 +93,7 @@
 
     <main id="appMain" class="hidden max-w-6xl mx-auto p-6">
         <div id="filterBar" class="hidden mb-6 flex flex-wrap gap-2 items-center">
-        <!-- FILTRAR POR ESTADO -->
+            <!-- FILTRAR POR ESTADO -->
             <span class="text-xs font-bold text-slate-500 uppercase mr-2">Filtrar por estado:</span>
             <button data-action="filter" data-status="Todos"
                 class="f-btn bg-indigo-600 text-[10px] px-3 py-1 rounded-full text-white font-bold">Todos</button>
@@ -116,7 +116,7 @@
                 class="f-btn bg-white/5 text-[10px] px-3 py-1 rounded-full text-white hover:bg-white/10">
                 Offline
             </button>
-        <!-- ORDENAR POR FECHA -->
+            <!-- ORDENAR POR FECHA -->
             <label for="projectSort" class="text-xs text-slate-400 ml-2">
                 Ordenar por cambio:
             </label>
@@ -163,6 +163,13 @@
                 <input id="pVersion" placeholder="Versión"
                     class="p-3 rounded-xl bg-black/30 border border-white/10 text-white" />
                 <input id="pDate" type="date" class="p-3 rounded-xl bg-black/30 border border-white/10 text-white" />
+                <div class="flex flex-col gap-2">
+                    <label for="pUpdatedAt" class="text-sm text-slate-300">
+                        Fecha de último cambio del proyecto
+                    </label>
+                    <input id="pUpdatedAt" type="date"
+                        class="p-3 rounded-xl bg-black/30 border border-white/10 text-white" />
+                </div>
                 <input id="pClient" placeholder="Cliente"
                     class="p-3 rounded-xl bg-black/30 border border-white/10 text-white" />
                 <input id="pLink" placeholder="Link código"
