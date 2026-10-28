@@ -19,12 +19,23 @@ const TABLES = { jobs: 'dashboard_jobs', projects: 'dashboard_projects', tools: 
 const escapeHTML = value => String(value ?? '').replace(/[&<>\"']/g, char => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', "'": '&#39;'
 }[char]));
+
 const safeURL = value => {
+    const raw = String(value || '').trim();
+
+    if (!raw) return '';
+
     try {
-        const url = new URL(String(value || ''), window.location.origin);
-        return ['http:', 'https:'].includes(url.protocol) ? url.href : '';
-    } catch { return ''; }
+        const url = new URL(raw, window.location.origin);
+
+        return ['http:', 'https:'].includes(url.protocol)
+            ? url.href
+            : '';
+    } catch {
+        return '';
+    }
 };
+
 const Storage = {
     async loadAll() {
         if (!currentUser) throw new Error('No hay una sesión activa.');
