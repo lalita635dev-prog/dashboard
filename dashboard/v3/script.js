@@ -12,6 +12,8 @@ const State = {
     reminders: [],
     calendarDate: new Date(),
     reminderNotified: new Set()
+    activeReminderId: null,
+    reminderQueue: [],
 };
 let currentUser = null;
 let saveQueue = Promise.resolve();
@@ -19,7 +21,7 @@ let saveQueue = Promise.resolve();
 const TABLES = { jobs: 'dashboard_jobs', projects: 'dashboard_projects', tools: 'dashboard_tools' };
 const REMINDERS_TABLE = 'dashboard_reminders';
 
-// Todo dato procedente del usuario o de Supabase se escapa antes de insertarse en HTML.
+
 const escapeHTML = value => String(value ?? '').replace(/[&<>\"']/g, char => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', "'": '&#39;'
 }[char]));
@@ -75,7 +77,7 @@ const Storage = {
 };
 
 /* VERSIONADO */
-const APP_VERSION = "v3.3.0";
+const APP_VERSION = "v3.3.1";
 document.getElementById("appVersion").innerText = APP_VERSION;
 
 /* THEME */
@@ -710,17 +712,144 @@ const Calendar = {
         if(error) { console.error(error); Notify('No se pudo eliminar el recordatorio','error'); return; }
         State.reminders=State.reminders.filter(r=>String(r.id)!==String(id)); this.render(); Notify('Recordatorio eliminado','info');
     },
-    checkDue() {
-        if(!currentUser) return;
-        const now=new Date(); const currentDate=this.dateKey(now); const currentTime=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-        for(const r of State.reminders) {
-            const reminderTime=(r.time || '09:00').slice(0,5);
-            if(r.completed || r.date!==currentDate || reminderTime>currentTime) continue;
-            const key=`${currentUser.id}:${r.id}:${r.date}:${reminderTime}`;
-            if(State.reminderNotified.has(key)) continue;
-            State.reminderNotified.add(key); Notify(`Recordatorio: ${r.title}`,'info');
+    showAlert(reminder) {
+        if (!reminder) return;
+
+        State.activeReminderId = String(reminder.id);
+
+        const modal = document.getElementById('reminderAlertModal');
+        const card = document.getElementById('reminderAlertCard');
+
+        document.getElementById('reminderAlertTitle').textContent =
+            reminder.title;
+
+        document.getElementById('reminderAlertDate').textContent =
+            `${reminder.date} · ${reminder.time || '09:00'}` +
+            (reminder.relation_label ? ` · ${reminder.relation_label}` : '');
+
+        document.getElementById('reminderAlertDescription').textContent =
+            reminder.description || 'No hay una descripción adicional.';
+
+        card.style.borderTopColor = safeColor(reminder.color);
+        modal.classList.remove('hidden');
+    },
+
+    showNextAlert() {
+        if (State.activeReminderId !== null) return;
+
+        while (State.reminderQueue.length) {
+            const next = State.reminderQueue.shift();
+
+            const reminder = State.reminders.find(
+                r => String(r.id) === String(next.id)
+            );
+
+            if (!reminder || reminder.completed) continue;
+
+            this.showAlert(reminder);
+            return;
         }
-    }
+    },
+
+    closeAlert() {
+        document.getElementById('reminderAlertModal').classList.add('hidden');
+        State.activeReminderId = null;
+        this.showNextAlert();
+    },
+
+    async snooze(minutes) {
+        const id = State.activeReminderId;
+        if (id === null) return;
+
+        const reminder = State.reminders.find(
+            r => String(r.id) === String(id)
+        );
+
+        if (!reminder) {
+            this.closeAlert();
+            return;
+        }
+
+        const newDate = new Date(Date.now() + minutes * 60 * 1000);
+        const date = this.dateKey(newDate);
+        const time = `${String(newDate.getHours()).padStart(2, '0')}:${String(newDate.getMinutes()).padStart(2, '0')}`;
+
+        const result = await window.supabaseClient
+            .from(REMINDERS_TABLE)
+            .update({
+                reminder_date: date,
+                reminder_time: time,
+                notified_at: null
+            })
+            .eq('id', id)
+            .eq('user_id', currentUser.id);
+
+        if (result.error) {
+            console.error(result.error);
+            Notify('No se pudo posponer el recordatorio.', 'error');
+            return;
+        }
+
+        reminder.date = date;
+        reminder.time = time;
+        reminder.notified_at = null;
+
+        // La nueva fecha/hora tendrá una clave de aviso diferente.
+        this.closeAlert();
+        this.render();
+        Notify(`Recordatorio pospuesto ${minutes} minutos.`, 'info');
+    },
+
+    async completeAlert() {
+        const id = State.activeReminderId;
+        if (id === null) return;
+
+        await this.update(
+            id,
+            { completed: true },
+            'Recordatorio marcado como realizado'
+        );
+
+        const reminder = State.reminders.find(
+            r => String(r.id) === String(id)
+        );
+
+        if (reminder?.completed) {
+            this.closeAlert();
+        }
+    },
+
+    checkDue() {
+        if (!currentUser) return;
+
+        const now = new Date();
+        const currentDate = this.dateKey(now);
+        const currentTime =
+            `${String(now.getHours()).padStart(2, '0')}:` +
+            `${String(now.getMinutes()).padStart(2, '0')}`;
+
+        for (const r of State.reminders) {
+            const reminderTime = (r.time || '09:00').slice(0, 5);
+
+            if (
+                r.completed ||
+                r.date !== currentDate ||
+                reminderTime > currentTime
+            ) {
+                continue;
+            }
+
+            const key =
+                `${currentUser.id}:${r.id}:${r.date}:${reminderTime}`;
+
+            if (State.reminderNotified.has(key)) continue;
+
+            State.reminderNotified.add(key);
+            State.reminderQueue.push({ id: r.id });
+        }
+
+        this.showNextAlert();
+    },
 };
 
 /* HERRAMIENTAS */
@@ -989,6 +1118,31 @@ const App = {
                 case 'reminder-edit': Calendar.openForm(State.reminders.find(r => String(r.id) === String(control.dataset.id))); break;
                 case 'reminder-delete': await Calendar.remove(control.dataset.id); break;
                 case 'reminder-done': await Calendar.update(control.dataset.id, { completed: true }, 'Recordatorio marcado como realizado'); break;
+                case 'reminder-alert-edit': {
+                const reminder = State.reminders.find(
+                        r => String(r.id) === String(State.activeReminderId)
+                    );
+
+                    if (reminder) {
+                        // Ocultar el aviso y abrir el formulario de edición.
+                        document.getElementById('reminderAlertModal').classList.add('hidden');
+                        State.activeReminderId = null;
+                        Calendar.openForm(reminder);
+                    }
+                    break;
+                }
+
+                case 'reminder-alert-snooze':
+                    await Calendar.snooze(Number(control.dataset.minutes));
+                    break;
+
+                case 'reminder-alert-close':
+                    Calendar.closeAlert();
+                    break;
+
+                case 'reminder-alert-done':
+                    await Calendar.completeAlert();
+                    break;
                 case 'open-kanban': Kanban.open(control.dataset.type, id); break;
                 case 'kanban-back': Kanban.back(); break;
                 case 'kanban-add': Kanban.openForm(); break;
@@ -1035,6 +1189,7 @@ const App = {
         });
         document.addEventListener('keydown', event => {
             if (event.key === 'Escape') {
+                if (State.activeReminderId !== null) return;
                 document.getElementById('reminderModal').classList.add('hidden');
                 document.getElementById('profileModal').classList.add('hidden');
                 document.getElementById('legalModal').classList.add('hidden');
