@@ -11,7 +11,7 @@ const State = {
     kanban: null,
     reminders: [],
     calendarDate: new Date(),
-    reminderNotified: new Set()
+    reminderNotified: new Set(),
     activeReminderId: null,
     reminderQueue: [],
 };
