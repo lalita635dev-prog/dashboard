@@ -1033,65 +1033,10 @@ const Calendar = {
         container.innerHTML=`<section class="space-y-5"><div class="flex flex-wrap items-center justify-between gap-3"><div><h2 class="text-3xl font-black text-white">📅 Agenda</h2><p class="mt-1 text-sm text-slate-400">Crea tus recordatorios.</p></div><button data-action="reminder-new" class="rounded-xl bg-indigo-600 px-4 py-2 font-bold text-white">＋ Nuevo recordatorio</button></div><div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/20 p-3"><div class="flex items-center gap-3"><button data-action="calendar-prev" class="rounded-lg bg-white/10 px-3 py-2" aria-label="Mes anterior">‹</button><h3 class="min-w-44 text-center text-xl font-black text-white">${this.monthNames[month]} ${year}</h3><button data-action="calendar-next" class="rounded-lg bg-white/10 px-3 py-2" aria-label="Mes siguiente">›</button></div><button data-action="calendar-today" class="rounded-lg bg-white/10 px-3 py-2 text-sm">Hoy</button></div><div class="grid grid-cols-7 gap-2">${this.weekdays.map(d=>`<div class="py-1 text-center text-xs font-bold uppercase text-slate-400">${d}</div>`).join('')}${cells.join('')}</div><div class="space-y-3"><h3 class="text-xl font-black text-white">Próximos recordatorios</h3>${this.listHTML()}</div></section>`;
     },
     listHTML() {
-        const today = this.dateKey(new Date());
-
-        const rows = [...State.reminders].sort((a, b) =>
-            (a.date + (a.time || '')).localeCompare(b.date + (b.time || ''))
-        );
-
-        if (!rows.length) {
-            return '<p class="rounded-xl border border-dashed border-white/10 p-6 text-center text-sm text-slate-400">No tenés recordatorios.</p>';
-        }
-
-        return `<div class="space-y-2">
-            ${rows.map(r => `
-                <article class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/20 p-3"
-                    style="border-left:4px solid ${safeColor(r.color)}">
-
-                    <div class="min-w-0 flex-1">
-                        <div class="flex flex-wrap items-center gap-2">
-                            <p class="font-bold text-white">${escapeHTML(r.title)}</p>
-                            ${r.completed
-                                ? '<span class="rounded-full bg-emerald-600/20 px-2 py-0.5 text-[10px] font-bold text-emerald-300">Completado</span>'
-                                : ''}
-                        </div>
-
-                        <p class="text-xs text-slate-400">
-                            ${escapeHTML(r.date)}
-                            ${r.time ? ` · ${escapeHTML(r.time)}` : ''}
-                            ${r.relation_label ? ` · ${escapeHTML(r.relation_label)}` : ''}
-                            ${!r.completed && r.date < today ? ' · Vencido' : ''}
-                        </p>
-
-                        ${r.description
-                            ? `<p class="mt-1 whitespace-pre-line text-sm text-slate-400">${escapeHTML(r.description)}</p>`
-                            : ''}
-                    </div>
-
-                    <div class="flex flex-wrap gap-2">
-                        ${!r.completed ? `
-                            <button data-action="reminder-done"
-                                data-id="${escapeHTML(r.id)}"
-                                class="rounded-lg bg-emerald-600/20 px-3 py-1.5 text-xs text-emerald-200">
-                                Realizado
-                            </button>
-                        ` : ''}
-
-                        <button data-action="reminder-edit"
-                            data-id="${escapeHTML(r.id)}"
-                            class="rounded-lg bg-white/10 px-3 py-1.5 text-xs">
-                            Editar
-                        </button>
-
-                        <button data-action="reminder-delete"
-                            data-id="${escapeHTML(r.id)}"
-                            class="rounded-lg bg-red-600/20 px-3 py-1.5 text-xs text-red-200">
-                            Eliminar
-                        </button>
-                    </div>
-                </article>
-            `).join('')}
-        </div>`;
+        const today=this.dateKey(new Date());
+        const rows=[...State.reminders].filter(r=>!r.completed).sort((a,b)=>(a.date+(a.time||'')).localeCompare(b.date+(b.time||''))).slice(0,30);
+        if(!rows.length) return '<p class="rounded-xl border border-dashed border-white/10 p-6 text-center text-sm text-slate-400">No tenés recordatorios pendientes.</p>';
+        return `<div class="space-y-2">${rows.map(r=>`<article class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/20 p-3" style="border-left:4px solid ${safeColor(r.color)}"><div class="min-w-0 flex-1"><p class="font-bold text-white">${escapeHTML(r.title)}</p><p class="text-xs text-slate-400">${escapeHTML(r.date)} ${r.time?`· ${escapeHTML(r.time)}`:''}${r.relation_label?` · ${escapeHTML(r.relation_label)}`:''}${r.date<today?' · Vencido':''}</p>${r.description?`<p class="mt-1 whitespace-pre-line text-sm text-slate-400">${escapeHTML(r.description)}</p>`:''}</div><div class="flex flex-wrap gap-2"><button data-action="reminder-done" data-id="${escapeHTML(r.id)}" class="rounded-lg bg-emerald-600/20 px-3 py-1.5 text-xs text-emerald-200">Realizado</button><button data-action="reminder-edit" data-id="${escapeHTML(r.id)}" class="rounded-lg bg-white/10 px-3 py-1.5 text-xs">Editar</button><button data-action="reminder-delete" data-id="${escapeHTML(r.id)}" class="rounded-lg bg-red-600/20 px-3 py-1.5 text-xs text-red-200">Eliminar</button></div></article>`).join('')}</div>`;
     },
     relatedOptions(type) {
         if(type==='project') return State.projects.map(x=>({id:String(x.id),label:`Proyecto: ${x.name}`}));
@@ -1117,6 +1062,13 @@ const Calendar = {
         this.relationChanged();
         if(reminder?.relation_id) document.getElementById('reminderTarget').value=reminder.relation_id;
         document.getElementById('reminderModalTitle').textContent=reminder?'Editar recordatorio':'Nuevo recordatorio';
+        const deleteBtn = document.getElementById('reminderDeleteBtn');
+        deleteBtn.classList.toggle('hidden', !reminder?.completed);
+        if (reminder) {
+            deleteBtn.dataset.id = reminder.id;
+        } else {
+            deleteBtn.removeAttribute('data-id');
+        }
         document.getElementById('reminderModal').classList.remove('hidden');
     },
     async save(event) {
@@ -1148,7 +1100,12 @@ const Calendar = {
         if(!confirm('¿Eliminar este recordatorio?')) return;
         const {error}=await window.supabaseClient.from(REMINDERS_TABLE).delete().eq('id',id).eq('user_id',currentUser.id);
         if(error) { console.error(error); Notify('No se pudo eliminar el recordatorio','error'); return; }
-        State.reminders=State.reminders.filter(r=>String(r.id)!==String(id)); UI.refreshCurrentTab(); Notify('Recordatorio eliminado','info');
+        State.reminders = State.reminders.filter(r => String(r.id) !== String(id));
+
+        document.getElementById('reminderModal').classList.add('hidden');
+
+        UI.refreshCurrentTab();
+        Notify('Recordatorio eliminado', 'info');
     },
     showAlert(reminder) {
         if (!reminder) return;

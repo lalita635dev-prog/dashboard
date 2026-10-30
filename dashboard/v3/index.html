@@ -288,12 +288,25 @@
                         class="mb-1 block text-sm text-slate-300">Elemento relacionado</label><select
                         id="reminderTarget"
                         class="w-full rounded-xl border border-white/10 bg-slate-800 p-3 text-white"></select></div>
-                <div class="flex flex-wrap justify-end gap-3 pt-2"><button type="button" data-action="close-modal"
+                <div class="flex flex-wrap justify-end gap-3 pt-2">
+                    <button type="button"
+                        id="reminderDeleteBtn"
+                        data-action="reminder-delete"
+                        class="hidden rounded-xl bg-red-600/20 px-4 py-2 font-bold text-red-200 hover:bg-red-600/30">
+                        Eliminar
+                    </button>
+                    <button type="button"
+                        data-action="close-modal"
                         data-modal="reminderModal"
-                        class="rounded-xl bg-white/10 px-4 py-2 font-bold text-white">Cancelar</button><button
-                        type="submit"
-                        class="rounded-xl bg-indigo-600 px-5 py-2 font-bold text-white hover:bg-indigo-500">Guardar
-                        recordatorio</button></div>
+                        class="rounded-xl bg-white/10 px-4 py-2 font-bold text-white">
+                        Cancelar
+                    </button>
+                    <button type="submit"
+                        class="rounded-xl bg-indigo-600 px-5 py-2 font-bold text-white hover:bg-indigo-500">
+                        Guardar
+                    </button>
+
+                </div>
             </form>
         </section>
     </div>
