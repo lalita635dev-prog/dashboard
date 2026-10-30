@@ -77,7 +77,7 @@ const Storage = {
 };
 
 /* VERSIONADO */
-const APP_VERSION = "v3.3.1";
+const APP_VERSION = "v3.4.0";
 document.getElementById("appVersion").innerText = APP_VERSION;
 
 /* THEME */
@@ -117,7 +117,7 @@ const CopyText = (text) => {
 
 const UI = {
     init() {
-        this.showJobs();
+        this.showHome();
         document.getElementById('globalSearch').addEventListener('input', (e) => {
             State.searchTerm = e.target.value.toLowerCase();
             this.refreshCurrentTab();
@@ -165,6 +165,21 @@ const UI = {
         if (State.activeTab === 'projects') document.getElementById('formProjects').classList.toggle('hidden');
         if (State.activeTab === 'tools') document.getElementById('formTools').classList.toggle('hidden');
     },
+    showHome() {
+        State.kanban = null;
+        this.resetTabs();
+
+        State.activeTab = 'home';
+
+        document.getElementById('tab-home')
+            .classList.add('bg-indigo-600', 'font-bold');
+
+        document.getElementById('btnNew').classList.add('hidden');
+        document.getElementById('globalSearch').classList.add('hidden');
+        document.getElementById('filterBar').classList.add('hidden');
+
+        Home.render();
+    },
     showJobs() { State.kanban = null; this.resetTabs(); State.activeTab = 'jobs'; document.getElementById('tab-jobs').classList.add('bg-indigo-600', 'font-bold'); Jobs.render(); },
     showProjects() {
         State.kanban = null; this.resetTabs();
@@ -176,10 +191,309 @@ const UI = {
     showTools() { State.kanban = null; this.resetTabs(); State.activeTab = 'tools'; document.getElementById('tab-tools').classList.add('bg-indigo-600', 'font-bold'); Tools.render(); },
     showCalendar() { State.kanban = null; this.resetTabs(); State.activeTab = 'calendar'; document.getElementById('tab-calendar').classList.add('bg-indigo-600', 'font-bold'); document.getElementById('btnNew').classList.add('hidden'); document.getElementById('globalSearch').classList.add('hidden'); Calendar.render(); },
     refreshCurrentTab() {
-        if (State.activeTab === 'jobs') Jobs.render();
-        if (State.activeTab === 'projects') Projects.render();
-        if (State.activeTab === 'tools') Tools.render();
-        if (State.activeTab === 'calendar') Calendar.render();
+    if (State.activeTab === 'home') Home.render();
+    if (State.activeTab === 'jobs') Jobs.render();
+    if (State.activeTab === 'projects') Projects.render();
+    if (State.activeTab === 'tools') Tools.render();
+    if (State.activeTab === 'calendar') Calendar.render();
+    }
+};
+
+/* HOME / PÁGINA PRINCIPAL */
+const Home = {
+    render() {
+        const container = document.getElementById('mainContentList');
+        if (!container) return;
+
+        const nickname = currentUser?.user_metadata?.nickname?.trim();
+        const greetingName = nickname || currentUser?.email || 'usuario';
+
+        // Próximos recordatorios pendientes.
+        const today = Calendar.dateKey(new Date());
+        const reminders = [...State.reminders]
+            .filter(r => !r.completed)
+            .sort((a, b) =>
+                `${a.date} ${a.time || '09:00'}`.localeCompare(
+                    `${b.date} ${b.time || '09:00'}`
+                )
+            )
+            .slice(0, 5);
+
+        // Tareas Kanban cuyo vencimiento está dentro del mes actual.
+        const now = new Date();
+        const monthStart =
+            `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+        const monthEnd = Calendar.dateKey(
+            new Date(now.getFullYear(), now.getMonth() + 1, 0)
+        );
+
+        const dueTasks = [
+            ...State.projects.flatMap(project =>
+                (project.kanbanTasks || []).map(task => ({
+                    ...task,
+                    parentId: project.id,
+                    parentName: project.name,
+                    parentType: 'projects',
+                    parentLabel: 'Proyecto'
+                }))
+            ),
+            ...State.jobs.flatMap(job =>
+                (job.kanbanTasks || []).map(task => ({
+                    ...task,
+                    parentId: job.id,
+                    parentName: job.name,
+                    parentType: 'jobs',
+                    parentLabel: 'Trabajo'
+                }))
+            )
+        ]
+            .filter(task =>
+                task.dueDate &&
+                task.dueDate >= monthStart &&
+                task.dueDate <= monthEnd &&
+                task.status !== 'done'
+            )
+            .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+
+        const formatDate = value => {
+            if (!value) return 'Sin fecha';
+            const parts = value.split('-');
+            return parts.length === 3
+                ? `${parts[2]}/${parts[1]}/${parts[0]}`
+                : value;
+        };
+
+        container.innerHTML = `
+            <section class="space-y-7">
+
+                <!-- SALUDO -->
+                <div class="relative overflow-hidden rounded-3xl border border-indigo-400/20
+                            bg-gradient-to-r from-indigo-900/80 via-slate-900 to-purple-900/70
+                            p-7 md:p-9 shadow-xl">
+                    <div class="relative z-10 flex flex-wrap items-center justify-between gap-5">
+                        <div>
+                            <p class="mb-2 text-xs font-bold uppercase tracking-[0.25em] text-indigo-300">
+                                Tu espacio de trabajo
+                            </p>
+                            <h2 class="text-3xl md:text-4xl font-black text-white">
+                                ¡Hola, ${escapeHTML(greetingName)}! 👋
+                            </h2>
+                            <p class="mt-3 max-w-xl text-sm text-slate-300">
+                                Este es tu resumen de hoy. Organizá tus actividades y mantené
+                                todo bajo control desde un solo lugar.
+                            </p>
+                        </div>
+
+                        <button data-action="open-profile"
+                            class="rounded-xl border border-white/15 bg-white/10 px-5 py-3
+                                   text-sm font-bold text-white hover:bg-white/20">
+                            ⚙️ Editar perfil
+                        </button>
+                    </div>
+                    <div class="pointer-events-none absolute -right-10 -top-20 h-56 w-56
+                                rounded-full bg-indigo-500/10 blur-3xl"></div>
+                </div>
+
+                <!-- RESUMEN RÁPIDO -->
+                <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                    <article class="rounded-2xl border border-white/10 bg-slate-900/60 p-5">
+                        <p class="text-sm text-slate-400">Trabajos</p>
+                        <p class="mt-2 text-3xl font-black text-white">${State.jobs.length}</p>
+                        <p class="mt-1 text-xs text-slate-500">Registrados</p>
+                    </article>
+
+                    <article class="rounded-2xl border border-white/10 bg-slate-900/60 p-5">
+                        <p class="text-sm text-slate-400">Proyectos</p>
+                        <p class="mt-2 text-3xl font-black text-white">${State.projects.length}</p>
+                        <p class="mt-1 text-xs text-slate-500">Registrados</p>
+                    </article>
+
+                    <article class="rounded-2xl border border-white/10 bg-slate-900/60 p-5">
+                        <p class="text-sm text-slate-400">Herramientas</p>
+                        <p class="mt-2 text-3xl font-black text-white">${State.tools.length}</p>
+                        <p class="mt-1 text-xs text-slate-500">Guardadas</p>
+                    </article>
+
+                    <article class="rounded-2xl border border-white/10 bg-slate-900/60 p-5">
+                        <p class="text-sm text-slate-400">Recordatorios</p>
+                        <p class="mt-2 text-3xl font-black text-white">
+                            ${State.reminders.filter(r => !r.completed).length}
+                        </p>
+                        <p class="mt-1 text-xs text-slate-500">Pendientes</p>
+                    </article>
+                </div>
+
+                <!-- RECORDATORIOS -->
+                <section class="rounded-2xl border border-white/10 bg-slate-900/50 p-5 md:p-6">
+                    <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                            <h3 class="text-xl font-black text-white">📅 Próximos recordatorios</h3>
+                            <p class="mt-1 text-sm text-slate-400">
+                                Tus próximas actividades programadas.
+                            </p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button data-action="reminder-new"
+                                class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-bold text-white">
+                                ＋ Nuevo
+                            </button>
+                            <button data-action="show-calendar"
+                                class="rounded-xl bg-white/10 px-4 py-2 text-sm font-bold text-white">
+                                Ver agenda →
+                            </button>
+                        </div>
+                    </div>
+
+                    ${reminders.length ? `
+                        <div class="space-y-3">
+                            ${reminders.map(r => `
+                                <article class="rounded-xl border border-white/10 bg-black/20 p-4"
+                                    style="border-left:4px solid ${safeColor(r.color)}">
+                                    <div class="flex flex-wrap items-start justify-between gap-3">
+                                        <button data-action="reminder-edit" data-id="${escapeHTML(r.id)}"
+                                            class="min-w-0 flex-1 text-left">
+                                            <p class="break-words font-bold text-white">
+                                                ${escapeHTML(r.title)}
+                                            </p>
+                                            <p class="mt-1 text-xs text-slate-400">
+                                                ${formatDate(r.date)} · ${escapeHTML(r.time || '09:00')}
+                                                ${r.relation_label
+                                                    ? ` · ${escapeHTML(r.relation_label)}`
+                                                    : ''}
+                                            </p>
+                                            ${r.description ? `
+                                                <p class="mt-2 text-sm text-slate-400">
+                                                    ${escapeHTML(r.description)}
+                                                </p>
+                                            ` : ''}
+                                        </button>
+                                        <div class="flex flex-wrap gap-2">
+                                            <button data-action="reminder-edit" data-id="${escapeHTML(r.id)}"
+                                                class="rounded-lg bg-white/10 px-3 py-2 text-xs text-white">
+                                                Editar
+                                            </button>
+                                            <button data-action="reminder-done" data-id="${escapeHTML(r.id)}"
+                                                class="rounded-lg bg-emerald-600/20 px-3 py-2 text-xs text-emerald-200">
+                                                ✓ Realizado
+                                            </button>
+                                            <button data-action="reminder-delete" data-id="${escapeHTML(r.id)}"
+                                                class="rounded-lg bg-red-600/20 px-3 py-2 text-xs text-red-200">
+                                                Eliminar
+                                            </button>
+                                        </div>
+                                    </div>
+                                </article>
+                            `).join('')}
+                        </div>
+                    ` : `
+                        <div class="rounded-xl border border-dashed border-white/10 p-7 text-center">
+                            <p class="text-3xl">🌤️</p>
+                            <p class="mt-2 font-bold text-white">No tenés recordatorios pendientes</p>
+                            <p class="mt-1 text-sm text-slate-400">
+                                Podés crear uno para organizar tu próxima actividad.
+                            </p>
+                        </div>
+                    `}
+                </section>
+
+                <!-- TAREAS KANBAN DEL MES -->
+                <section class="rounded-2xl border border-white/10 bg-slate-900/50 p-5 md:p-6">
+                    <div class="mb-5">
+                        <h3 class="text-xl font-black text-white">🎯 Tareas Kanban de este mes</h3>
+                        <p class="mt-1 text-sm text-slate-400">
+                            Tareas de proyectos y trabajos que vencen durante este mes.
+                        </p>
+                    </div>
+
+                    ${dueTasks.length ? `
+                        <div class="grid gap-3 md:grid-cols-2">
+                            ${dueTasks.map(task => `
+                                <button data-action="open-kanban"
+                                    data-type="${task.parentType}"
+                                    data-id="${escapeHTML(task.parentId)}"
+                                    class="rounded-xl border border-white/10 bg-black/20 p-4 text-left
+                                           transition hover:border-indigo-400/50 hover:bg-white/5">
+                                    <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+                                        <span class="rounded-full bg-indigo-500/20 px-2 py-1 text-[10px]
+                                                     font-bold uppercase text-indigo-200">
+                                            ${task.parentLabel}
+                                        </span>
+                                        <span class="text-xs ${task.dueDate < today
+                                            ? 'font-bold text-red-300'
+                                            : 'text-slate-400'}">
+                                            Vence ${formatDate(task.dueDate)}
+                                        </span>
+                                    </div>
+                                    <p class="font-bold text-white">${escapeHTML(task.title)}</p>
+                                    <p class="mt-1 text-xs text-slate-400">
+                                        ${escapeHTML(task.parentName)} · Abrir tablero →
+                                    </p>
+                                </button>
+                            `).join('')}
+                        </div>
+                    ` : `
+                        <div class="rounded-xl border border-dashed border-white/10 p-7 text-center">
+                            <p class="text-3xl">✨</p>
+                            <p class="mt-2 font-bold text-white">No hay tareas Kanban pendientes con vencimiento este mes</p>
+                            <p class="mt-1 text-sm text-slate-400">
+                                Cuando agregues vencimientos a tus tableros, aparecerán acá.
+                            </p>
+                        </div>
+                    `}
+                </section>
+
+                <!-- ACCESOS DIRECTOS -->
+                <section>
+                    <div class="mb-4">
+                        <h3 class="text-xl font-black text-white">🚀 Tus espacios de trabajo</h3>
+                        <p class="mt-1 text-sm text-slate-400">
+                            Entrá directamente a la sección que necesitás.
+                        </p>
+                    </div>
+
+                    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                        <button data-action="show-jobs"
+                            class="rounded-2xl border border-white/10 bg-slate-900/60 p-5 text-left
+                                   transition hover:-translate-y-1 hover:border-indigo-400/50">
+                            <span class="text-2xl">🗃️</span>
+                            <p class="mt-3 font-black text-white">Trabajos</p>
+                            <p class="mt-1 text-sm text-slate-400">${State.jobs.length} registrados</p>
+                            <p class="mt-4 text-xs font-bold text-indigo-300">Abrir trabajos →</p>
+                        </button>
+
+                        <button data-action="show-projects"
+                            class="rounded-2xl border border-white/10 bg-slate-900/60 p-5 text-left
+                                   transition hover:-translate-y-1 hover:border-indigo-400/50">
+                            <span class="text-2xl">🧩</span>
+                            <p class="mt-3 font-black text-white">Proyectos</p>
+                            <p class="mt-1 text-sm text-slate-400">${State.projects.length} registrados</p>
+                            <p class="mt-4 text-xs font-bold text-indigo-300">Abrir proyectos →</p>
+                        </button>
+
+                        <button data-action="show-tools"
+                            class="rounded-2xl border border-white/10 bg-slate-900/60 p-5 text-left
+                                   transition hover:-translate-y-1 hover:border-indigo-400/50">
+                            <span class="text-2xl">🧰</span>
+                            <p class="mt-3 font-black text-white">Herramientas</p>
+                            <p class="mt-1 text-sm text-slate-400">${State.tools.length} guardadas</p>
+                            <p class="mt-4 text-xs font-bold text-indigo-300">Abrir herramientas →</p>
+                        </button>
+
+                        <button data-action="show-calendar"
+                            class="rounded-2xl border border-white/10 bg-slate-900/60 p-5 text-left
+                                   transition hover:-translate-y-1 hover:border-indigo-400/50">
+                            <span class="text-2xl">📅</span>
+                            <p class="mt-3 font-black text-white">Agenda</p>
+                            <p class="mt-1 text-sm text-slate-400">
+                                ${State.reminders.filter(r => !r.completed).length} pendientes
+                            </p>
+                            <p class="mt-4 text-xs font-bold text-indigo-300">Abrir agenda →</p>
+                        </button>
+                    </div>
+                </section>
+
+            </section>
+        `;
     }
 };
 
@@ -647,7 +961,7 @@ const Calendar = {
             const items=State.reminders.filter(r=>r.date===date);
             cells.push(`<div class="min-h-24 rounded-xl border border-white/10 bg-slate-900/50 p-2"><div class="mb-2 text-xs font-black ${date===this.dateKey(new Date())?'text-indigo-300':''}">${day}</div><div class="space-y-1">${items.slice(0,3).map(r=>`<button data-action="reminder-edit" data-id="${escapeHTML(r.id)}" title="${escapeHTML(r.title)}" class="block w-full truncate rounded-md px-1.5 py-1 text-left text-[10px] ${r.completed?'opacity-50 line-through':''}" style="background:${safeColor(r.color)}33;border-left:3px solid ${safeColor(r.color)}">${r.time?escapeHTML(r.time)+' ':''}${escapeHTML(r.title)}</button>`).join('')}${items.length>3?`<p class="text-[10px] text-slate-400">+${items.length-3} más</p>`:''}</div></div>`);
         }
-        container.innerHTML=`<section class="space-y-5"><div class="flex flex-wrap items-center justify-between gap-3"><div><h2 class="text-3xl font-black text-white">📅 Mi agenda</h2><p class="mt-1 text-sm text-slate-400">Recordatorios personales, reunidos en un único calendario.</p></div><button data-action="reminder-new" class="rounded-xl bg-indigo-600 px-4 py-2 font-bold text-white">＋ Nuevo recordatorio</button></div><div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/20 p-3"><div class="flex items-center gap-3"><button data-action="calendar-prev" class="rounded-lg bg-white/10 px-3 py-2" aria-label="Mes anterior">‹</button><h3 class="min-w-44 text-center text-xl font-black text-white">${this.monthNames[month]} ${year}</h3><button data-action="calendar-next" class="rounded-lg bg-white/10 px-3 py-2" aria-label="Mes siguiente">›</button></div><button data-action="calendar-today" class="rounded-lg bg-white/10 px-3 py-2 text-sm">Hoy</button></div><div class="grid grid-cols-7 gap-2">${this.weekdays.map(d=>`<div class="py-1 text-center text-xs font-bold uppercase text-slate-400">${d}</div>`).join('')}${cells.join('')}</div><div class="space-y-3"><h3 class="text-xl font-black text-white">Próximos recordatorios</h3>${this.listHTML()}</div></section>`;
+        container.innerHTML=`<section class="space-y-5"><div class="flex flex-wrap items-center justify-between gap-3"><div><h2 class="text-3xl font-black text-white">📅 Agenda</h2><p class="mt-1 text-sm text-slate-400">Crea tus recordatorios.</p></div><button data-action="reminder-new" class="rounded-xl bg-indigo-600 px-4 py-2 font-bold text-white">＋ Nuevo recordatorio</button></div><div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/20 p-3"><div class="flex items-center gap-3"><button data-action="calendar-prev" class="rounded-lg bg-white/10 px-3 py-2" aria-label="Mes anterior">‹</button><h3 class="min-w-44 text-center text-xl font-black text-white">${this.monthNames[month]} ${year}</h3><button data-action="calendar-next" class="rounded-lg bg-white/10 px-3 py-2" aria-label="Mes siguiente">›</button></div><button data-action="calendar-today" class="rounded-lg bg-white/10 px-3 py-2 text-sm">Hoy</button></div><div class="grid grid-cols-7 gap-2">${this.weekdays.map(d=>`<div class="py-1 text-center text-xs font-bold uppercase text-slate-400">${d}</div>`).join('')}${cells.join('')}</div><div class="space-y-3"><h3 class="text-xl font-black text-white">Próximos recordatorios</h3>${this.listHTML()}</div></section>`;
     },
     listHTML() {
         const today=this.dateKey(new Date());
@@ -698,19 +1012,19 @@ const Calendar = {
         if(result.error) { console.error(result.error); Notify('No se pudo guardar. Verificá que ejecutaste la migración SQL de recordatorios.','error'); return; }
         const row=result.data, item={id:row.id,title:row.title,description:row.description||'',date:row.reminder_date,time:row.reminder_time||'',color:safeColor(row.color),relation_type:row.relation_type||'',relation_id:row.relation_id||'',relation_label:row.relation_label||'',completed:!!row.completed,notified_at:row.notified_at||null};
         const ix=State.reminders.findIndex(r=>String(r.id)===String(item.id)); if(ix>=0) State.reminders[ix]=item; else State.reminders.push(item);
-        document.getElementById('reminderModal').classList.add('hidden'); this.render(); Notify('Recordatorio guardado');
+        document.getElementById('reminderModal').classList.add('hidden'); UI.refreshCurrentTab();; Notify('Recordatorio guardado');
     },
     async update(id, changes, message) {
         const result=await window.supabaseClient.from(REMINDERS_TABLE).update(changes).eq('id',id).eq('user_id',currentUser.id).select().single();
         if(result.error) { console.error(result.error); Notify('No se pudo actualizar el recordatorio','error'); return; }
         const row=result.data, item=State.reminders.find(r=>String(r.id)===String(id)); if(item) Object.assign(item,{completed:!!row.completed,notified_at:row.notified_at||null});
-        this.render(); Notify(message);
+        UI.refreshCurrentTab(); Notify(message);
     },
     async remove(id) {
         if(!confirm('¿Eliminar este recordatorio?')) return;
         const {error}=await window.supabaseClient.from(REMINDERS_TABLE).delete().eq('id',id).eq('user_id',currentUser.id);
         if(error) { console.error(error); Notify('No se pudo eliminar el recordatorio','error'); return; }
-        State.reminders=State.reminders.filter(r=>String(r.id)!==String(id)); this.render(); Notify('Recordatorio eliminado','info');
+        State.reminders=State.reminders.filter(r=>String(r.id)!==String(id)); UI.refreshCurrentTab(); Notify('Recordatorio eliminado','info');
     },
     showAlert(reminder) {
         if (!reminder) return;
@@ -796,7 +1110,7 @@ const Calendar = {
 
         // La nueva fecha/hora tendrá una clave de aviso diferente.
         this.closeAlert();
-        this.render();
+        UI.refreshCurrentTab();
         Notify(`Recordatorio pospuesto ${minutes} minutos.`, 'info');
     },
 
@@ -1107,6 +1421,7 @@ const App = {
             const id = /^\d+$/.test(control.dataset.id || '') ? Number(control.dataset.id) : control.dataset.id;
             const index = Number(control.dataset.index);
             switch (control.dataset.action) {
+                case 'show-home': UI.showHome(); break;
                 case 'show-jobs': UI.showJobs(); break;
                 case 'show-projects': UI.showProjects(); break;
                 case 'show-tools': UI.showTools(); break;
