@@ -126,6 +126,9 @@ const UI = {
             State.projectSort = e.target.value;
             Projects.render();
         });
+        document.getElementById('projectStatusFilter').addEventListener('change', (e) => {
+            this.setFilter(e.target.value);
+        });
     },
     resetTabs() {
         document.querySelectorAll('.tab').forEach(b => {
@@ -149,14 +152,7 @@ const UI = {
         });
     },
     setFilter(status) {
-        State.statusFilter = status;
-        document.querySelectorAll('.f-btn').forEach(btn => {
-            btn.classList.remove('bg-indigo-600');
-            btn.classList.add('bg-white/5');
-            if (btn.innerText === status) {
-                btn.classList.replace('bg-white/5', 'bg-indigo-600');
-            }
-        });
+    State.statusFilter = status;
         Projects.render();
     },
     showFormByTab() {
@@ -646,10 +642,61 @@ const Projects = {
     render() {
         const c = document.getElementById('mainContentList');
         c.innerHTML = '';
+        // Estados disponibles y cantidad de proyectos por estado.
+        const statusOptions = [
+            'En diseño',
+            'En desarrollo',
+            'Testing',
+            'Producción',
+            'Mantenimiento',
+            'Offline',
+            'Sin Estado'
+        ];
 
-        let filtered = State.projects.filter(p => String(p.name || '').toLowerCase().includes(State.searchTerm));
+        const statusCounts = {
+            'Todos': State.projects.length
+        };
+
+        statusOptions.forEach(status => {
+            statusCounts[status] = State.projects.filter(project => {
+                const projectStatus = String(project.status || '').trim();
+
+                if (status === 'Sin Estado') {
+                    return projectStatus === '';
+                }
+
+                return projectStatus === status;
+            }).length;
+        });
+
+        // Actualizar opciones del desplegable sin perder la selección.
+        const statusSelect = document.getElementById('projectStatusFilter');
+
+        if (statusSelect) {
+            statusSelect.innerHTML = [
+                `<option value="Todos">Todos (${statusCounts['Todos']})</option>`,
+                ...statusOptions.map(status =>
+                    `<option value="${escapeHTML(status)}">${escapeHTML(status)} (${statusCounts[status]})</option>`
+                )
+            ].join('');
+
+            statusSelect.value = State.statusFilter;
+        }
+
+        let filtered = State.projects.filter(p =>
+            String(p.name || '').toLowerCase().includes(State.searchTerm)
+        );
+
         if (State.statusFilter !== 'Todos') {
-            filtered = filtered.filter(p => p.status === State.statusFilter);
+            filtered = filtered.filter(p => {
+                const projectStatus = String(p.status || '').trim();
+
+                if (State.statusFilter === 'Sin Estado') {
+                    return projectStatus === '';
+                }
+
+                return projectStatus === State.statusFilter;
+            });
         }
         filtered.sort((a, b) => {
             const dateA = Date.parse(a.updatedAt || '') || 0;
@@ -787,7 +834,7 @@ const Projects = {
         
         // RELLENAR TODOS LOS CAMPOS
         document.getElementById('pName').value = p.name || '';
-        document.getElementById('pStatus').value = p.status || 'En diseño';
+        document.getElementById('pStatus').value = p.status ?? 'En diseño';
         document.getElementById('pVersion').value = p.version || '';
         document.getElementById('pDate').value = p.date || '';
         document.getElementById('pUpdatedAt').value = p.updatedAt ? String(p.updatedAt).slice(0, 10) : '';

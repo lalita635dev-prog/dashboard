@@ -100,32 +100,20 @@
 
     <main id="appMain" class="hidden max-w-6xl mx-auto p-6">
         <div id="filterBar" class="hidden mb-6 flex flex-wrap gap-2 items-center">
+            
             <!-- FILTRAR POR ESTADO -->
-            <span class="text-xs font-bold text-slate-500 uppercase mr-2">Filtrar por estado:</span>
-            <button data-action="filter" data-status="Todos"
-                class="f-btn bg-indigo-600 text-[10px] px-3 py-1 rounded-full text-white font-bold">Todos</button>
-            <button data-action="filter" data-status="En diseño"
-                class="f-btn bg-white/5 text-[10px] px-3 py-1 rounded-full text-white hover:bg-white/10">
-                En diseño
-            </button>
-            <button data-action="filter" data-status="En desarrollo"
-                class="f-btn bg-white/5 text-[10px] px-3 py-1 rounded-full text-white hover:bg-white/10">En
-                desarrollo</button>
-            <button data-action="filter" data-status="Testing"
-                class="f-btn bg-white/5 text-[10px] px-3 py-1 rounded-full text-white hover:bg-white/10">Testing</button>
-            <button data-action="filter" data-status="Producción"
-                class="f-btn bg-white/5 text-[10px] px-3 py-1 rounded-full text-white hover:bg-white/10">Producción</button>
-            <button data-action="filter" data-status="Mantenimiento"
-                class="f-btn bg-white/5 text-[10px] px-3 py-1 rounded-full text-white hover:bg-white/10">
-                Mantenimiento
-            </button>
-            <button data-action="filter" data-status="Offline"
-                class="f-btn bg-white/5 text-[10px] px-3 py-1 rounded-full text-white hover:bg-white/10">
-                Offline
-            </button>
+            <label for="projectStatusFilter" class="text-xs font-bold text-slate-500 uppercase mr-2">
+                Filtrar por estado:
+            </label>
+
+            <select id="projectStatusFilter"
+                class="bg-slate-900 border border-white/10 rounded-full px-3 py-1 text-xs text-white">
+                <option value="Todos">Todos (0)</option>
+            </select>
+
             <!-- ORDENAR POR FECHA -->
             <label for="projectSort" class="text-xs text-slate-400 ml-2">
-                Ordenar por cambio:
+                Ordenar por fecha de actualizado:
             </label>
 
             <select id="projectSort"
@@ -166,6 +154,7 @@
                     <option>Producción</option>
                     <option>Mantenimiento</option>
                     <option>Offline</option>
+                    <option value="">Sin Estado</option>
                 </select>
                 <input id="pVersion" placeholder="Versión"
                     class="p-3 rounded-xl bg-black/30 border border-white/10 text-white" />
