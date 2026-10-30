@@ -208,6 +208,22 @@ const Home = {
         const nickname = currentUser?.user_metadata?.nickname?.trim();
         const greetingName = nickname || currentUser?.email || 'usuario';
 
+        const sectionStats = [
+            { name: 'Trabajos', count: State.jobs.length, icon: '🗃️' },
+            { name: 'Proyectos', count: State.projects.length, icon: '🧩' },
+            { name: 'Herramientas', count: State.tools.length, icon: '🧰' },
+            {
+                name: 'Agenda',
+                count: State.reminders.filter(r => !r.completed).length,
+                icon: '📅'
+            }
+        ];
+
+        const maxSectionCount = Math.max(
+            1,
+            ...sectionStats.map(section => section.count)
+        );
+
         // Próximos recordatorios pendientes.
         const today = Calendar.dateKey(new Date());
         const reminders = [...State.reminders]
@@ -267,9 +283,7 @@ const Home = {
             <section class="space-y-7">
 
                 <!-- SALUDO -->
-                <div class="relative overflow-hidden rounded-3xl border border-indigo-400/20
-                            bg-gradient-to-r from-indigo-900/80 via-slate-900 to-purple-900/70
-                            p-7 md:p-9 shadow-xl">
+                <div class="relative overflow-hidden rounded-3xl border border-white/10 bg-slate-900/60 p-7 md:p-9 shadow-xl">
                     <div class="relative z-10 flex flex-wrap items-center justify-between gap-5">
                         <div>
                             <p class="mb-2 text-xs font-bold uppercase tracking-[0.25em] text-indigo-300">
@@ -290,38 +304,45 @@ const Home = {
                             ⚙️ Editar perfil
                         </button>
                     </div>
-                    <div class="pointer-events-none absolute -right-10 -top-20 h-56 w-56
-                                rounded-full bg-indigo-500/10 blur-3xl"></div>
+
                 </div>
 
-                <!-- RESUMEN RÁPIDO -->
-                <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
-                    <article class="rounded-2xl border border-white/10 bg-slate-900/60 p-5">
-                        <p class="text-sm text-slate-400">Trabajos</p>
-                        <p class="mt-2 text-3xl font-black text-white">${State.jobs.length}</p>
-                        <p class="mt-1 text-xs text-slate-500">Registrados</p>
-                    </article>
-
-                    <article class="rounded-2xl border border-white/10 bg-slate-900/60 p-5">
-                        <p class="text-sm text-slate-400">Proyectos</p>
-                        <p class="mt-2 text-3xl font-black text-white">${State.projects.length}</p>
-                        <p class="mt-1 text-xs text-slate-500">Registrados</p>
-                    </article>
-
-                    <article class="rounded-2xl border border-white/10 bg-slate-900/60 p-5">
-                        <p class="text-sm text-slate-400">Herramientas</p>
-                        <p class="mt-2 text-3xl font-black text-white">${State.tools.length}</p>
-                        <p class="mt-1 text-xs text-slate-500">Guardadas</p>
-                    </article>
-
-                    <article class="rounded-2xl border border-white/10 bg-slate-900/60 p-5">
-                        <p class="text-sm text-slate-400">Recordatorios</p>
-                        <p class="mt-2 text-3xl font-black text-white">
-                            ${State.reminders.filter(r => !r.completed).length}
+                <!-- ESTADÍSTICAS GENERALES -->
+                <section class="rounded-2xl border border-white/10 bg-slate-900/60 p-5 md:p-6">
+                    <div class="mb-5">
+                        <h3 class="text-xl font-black text-white">📊 Resumen de tu Dashboard</h3>
+                        <p class="mt-1 text-sm text-slate-400">
+                            Cantidad de elementos registrados en cada sección.
                         </p>
-                        <p class="mt-1 text-xs text-slate-500">Pendientes</p>
-                    </article>
-                </div>
+                    </div>
+
+                    <div class="space-y-5">
+                        ${sectionStats.map(section => {
+                            const percentage = Math.round(
+                                (section.count / maxSectionCount) * 100
+                            );
+
+                            return `
+                                <div>
+                                    <div class="mb-2 flex items-center justify-between gap-3">
+                                        <span class="text-sm font-semibold text-slate-200">
+                                            ${section.icon} ${section.name}
+                                        </span>
+                                        <span class="text-sm font-black text-white tabular-nums">
+                                            ${section.count}
+                                        </span>
+                                    </div>
+
+                                    <div class="h-3 overflow-hidden rounded-full bg-white/10">
+                                        <div class="h-full rounded-full bg-indigo-500 transition-all duration-500"
+                                            style="width: ${percentage}%;">
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </section>
 
                 <!-- RECORDATORIOS -->
                 <section class="rounded-2xl border border-white/10 bg-slate-900/50 p-5 md:p-6">
@@ -399,7 +420,7 @@ const Home = {
                 <!-- TAREAS KANBAN DEL MES -->
                 <section class="rounded-2xl border border-white/10 bg-slate-900/50 p-5 md:p-6">
                     <div class="mb-5">
-                        <h3 class="text-xl font-black text-white">🎯 Tareas Kanban de este mes</h3>
+                        <h3 class="text-xl font-black text-white">🎯 Tareas que vencen este mes</h3>
                         <p class="mt-1 text-sm text-slate-400">
                             Tareas de proyectos y trabajos que vencen durante este mes.
                         </p>
@@ -421,7 +442,8 @@ const Home = {
                                         <span class="text-xs ${task.dueDate < today
                                             ? 'font-bold text-red-300'
                                             : 'text-slate-400'}">
-                                            Vence ${formatDate(task.dueDate)}
+                                            ${task.dueDate < today ? 'Vencida:' : 'Vence:'}
+                                            ${formatDate(task.dueDate)}
                                         </span>
                                     </div>
                                     <p class="font-bold text-white">${escapeHTML(task.title)}</p>
@@ -445,7 +467,7 @@ const Home = {
                 <!-- ACCESOS DIRECTOS -->
                 <section>
                     <div class="mb-4">
-                        <h3 class="text-xl font-black text-white">🚀 Tus espacios de trabajo</h3>
+                        <h3 class="text-xl font-black text-white">🚀 Tus secciones</h3>
                         <p class="mt-1 text-sm text-slate-400">
                             Entrá directamente a la sección que necesitás.
                         </p>
