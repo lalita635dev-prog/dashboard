@@ -1,3 +1,4 @@
+/* ESTADO Y PERSISTENCIA EN BD */
 const State = {
     jobs: [],
     projects: [],
@@ -76,7 +77,7 @@ const Storage = {
 };
 
 /* VERSIONADO */
-const APP_VERSION = "v3.4.4";
+const APP_VERSION = "v3.4.0";
 document.getElementById("appVersion").innerText = APP_VERSION;
 
 /* THEME */
@@ -602,6 +603,7 @@ const Jobs = {
         State.editingId = id;
         document.getElementById('formJobs').classList.remove('hidden');
         
+        // RELLENAR TODOS LOS CAMPOS
         document.getElementById('jName').value = j.name || '';
         document.getElementById('jRole').value = j.role || '';
         document.getElementById('jContract').value = j.contract || '';
@@ -667,6 +669,7 @@ const Projects = {
             }).length;
         });
 
+        // Actualizar opciones del desplegable sin perder la selección.
         const statusSelect = document.getElementById('projectStatusFilter');
 
         if (statusSelect) {
@@ -992,11 +995,14 @@ const Kanban = {
 
         if (!task || !this.statuses.some(item => item.id === status)) return;
 
+        // Comprobar si la tarea ya estaba completada.
         const wasCompleted = task.status === 'done';
 
+        // Actualizar el estado de la tarea.
         task.status = status;
         task.updatedAt = new Date().toISOString();
 
+        // Actualizar el proyecto o trabajo solamente al pasar a Completada.
         if (status === 'done' && !wasCompleted) {
             parent.updatedAt = new Date().toISOString();
         }
