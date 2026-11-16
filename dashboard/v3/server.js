@@ -22,8 +22,7 @@ app.use(helmet({
   },
   crossOriginEmbedderPolicy: false
 }));
-// En Render, la configuración se inyecta desde variables de entorno. La clave anon
-// es pública por diseño; la seguridad real la imponen Auth + RLS en Supabase.
+
 app.get('/config.js', (_req, res) => {
   res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
   res.setHeader('Cache-Control', 'no-store');
@@ -34,6 +33,6 @@ app.get('/config.js', (_req, res) => {
   res.send(`window.DASHBOARD_CONFIG = ${JSON.stringify(config)};`);
 });
 app.use(express.static(publicDir, { extensions: ['html'], etag: true, maxAge: '1h' }));
-app.get('/health', (_req, res) => res.json({ status: 'ok', version: '3.2.0' }));
+app.get('/health', (_req, res) => res.json({ status: 'ok', version: '3.4.4' }));
 app.get('*', (_req, res) => res.sendFile(path.join(publicDir, 'index.html')));
 app.listen(PORT, () => console.log(`Dashboard Project escuchando en puerto ${PORT}`));
